@@ -6,6 +6,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { useRouter } from "next/navigation";
 import ProgressBar from "@/components/application/progress-bar";
 import WizardNavigation from "@/components/application/wizard-navigation";
 
@@ -75,6 +76,8 @@ function getInitialDraft(): SavedDraft {
 }
 
 export default function PersonalStatementPage() {
+  const router = useRouter();
+
   const [initialDraft] = useState<SavedDraft>(getInitialDraft);
 
   const [currentStep, setCurrentStep] = useState(
@@ -160,6 +163,10 @@ export default function PersonalStatementPage() {
     setIsComplete(false);
   }
 
+  function handleGenerate() {
+    router.push("/application/personal-statement/result");
+  }
+
   if (isComplete) {
     return (
       <main className="min-h-screen bg-slate-50 px-6 py-12">
@@ -223,11 +230,7 @@ export default function PersonalStatementPage() {
 
               <button
                 type="button"
-                onClick={() =>
-                  window.alert(
-                    "AI generation will be added in the next step.",
-                  )
-                }
+                onClick={handleGenerate}
                 className="rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
               >
                 Generate personal statement
