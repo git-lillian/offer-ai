@@ -1,8 +1,16 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import {
+  FormEvent,
+  ReactNode,
+  useEffect,
+  useState,
+} from "react";
 import ProgressBar from "@/components/application/progress-bar";
 import WizardNavigation from "@/components/application/wizard-navigation";
+
+const STORAGE_KEY = "offer-ai-personal-statement-draft";
+const TOTAL_STEPS = 4;
 
 type PersonalStatementAnswers = {
   fullName: string;
@@ -11,6 +19,11 @@ type PersonalStatementAnswers = {
   motivation: string;
   experience: string;
   careerGoals: string;
+};
+
+type SavedDraft = {
+  currentStep: number;
+  answers: PersonalStatementAnswers;
 };
 
 const initialAnswers: PersonalStatementAnswers = {
@@ -22,13 +35,72 @@ const initialAnswers: PersonalStatementAnswers = {
   careerGoals: "",
 };
 
+const emptyDraft: SavedDraft = {
+  currentStep: 1,
+  answers: initialAnswers,
+};
+
+function getInitialDraft(): SavedDraft {
+  if (typeof window === "undefined") {
+    return emptyDraft;
+  }
+
+  try {
+    const savedValue = window.localStorage.getItem(STORAGE_KEY);
+
+    if (!savedValue) {
+      return emptyDraft;
+    }
+
+    const parsedDraft = JSON.parse(savedValue) as Partial<SavedDraft>;
+
+    const savedStep =
+      typeof parsedDraft.currentStep === "number" &&
+      parsedDraft.currentStep >= 1 &&
+      parsedDraft.currentStep <= TOTAL_STEPS
+        ? parsedDraft.currentStep
+        : 1;
+
+    return {
+      currentStep: savedStep,
+      answers: {
+        ...initialAnswers,
+        ...parsedDraft.answers,
+      },
+    };
+  } catch (error) {
+    console.error("Unable to load saved draft:", error);
+    return emptyDraft;
+  }
+}
+
 export default function PersonalStatementPage() {
-  const [currentStep, setCurrentStep] = useState(1);
+  const [initialDraft] = useState<SavedDraft>(getInitialDraft);
+
+  const [currentStep, setCurrentStep] = useState(
+    initialDraft.currentStep,
+  );
+
   const [answers, setAnswers] =
-    useState<PersonalStatementAnswers>(initialAnswers);
+    useState<PersonalStatementAnswers>(initialDraft.answers);
+
   const [isComplete, setIsComplete] = useState(false);
 
-  const totalSteps = 4;
+  useEffect(() => {
+    try {
+      const draft: SavedDraft = {
+        currentStep,
+        answers,
+      };
+
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(draft),
+      );
+    } catch (error) {
+      console.error("Unable to save draft:", error);
+    }
+  }, [answers, currentStep]);
 
   function updateAnswer(
     field: keyof PersonalStatementAnswers,
@@ -43,7 +115,7 @@ export default function PersonalStatementPage() {
   function handleNext(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (currentStep < totalSteps) {
+    if (currentStep < TOTAL_STEPS) {
       setCurrentStep((step) => step + 1);
     }
   }
@@ -68,6 +140,26 @@ export default function PersonalStatementPage() {
     setCurrentStep(step);
   }
 
+  function handleStartOver() {
+    const shouldReset = window.confirm(
+      "Are you sure you want to delete this draft and start again?",
+    );
+
+    if (!shouldReset) {
+      return;
+    }
+
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.error("Unable to delete saved draft:", error);
+    }
+
+    setAnswers({ ...initialAnswers });
+    setCurrentStep(1);
+    setIsComplete(false);
+  }
+
   if (isComplete) {
     return (
       <main className="min-h-screen bg-slate-50 px-6 py-12">
@@ -89,20 +181,31 @@ export default function PersonalStatementPage() {
             </div>
 
             <div className="mt-8 space-y-6">
-              <ReviewItem label="Applicant" value={answers.fullName} />
-              <ReviewItem label="Course" value={answers.course} />
+              <ReviewItem
+                label="Applicant"
+                value={answers.fullName}
+              />
+
+              <ReviewItem
+                label="Course"
+                value={answers.course}
+              />
+
               <ReviewItem
                 label="University"
                 value={answers.university}
               />
+
               <ReviewItem
                 label="Motivation"
                 value={answers.motivation}
               />
+
               <ReviewItem
                 label="Relevant experience"
                 value={answers.experience}
               />
+
               <ReviewItem
                 label="Career goals"
                 value={answers.careerGoals}
@@ -121,7 +224,9 @@ export default function PersonalStatementPage() {
               <button
                 type="button"
                 onClick={() =>
-                  alert("AI generation will be added in the next step.")
+                  window.alert(
+                    "AI generation will be added in the next step.",
+                  )
                 }
                 className="rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
               >
@@ -138,22 +243,35 @@ export default function PersonalStatementPage() {
     <main className="min-h-screen bg-slate-50 px-6 py-12">
       <section className="mx-auto max-w-3xl">
         <div className="mb-8">
-          <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
-            Offer.ai
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-widest text-blue-600">
+                Offer.ai
+              </p>
 
-          <h1 className="mt-3 text-3xl font-bold text-slate-900">
-            Personal Statement Builder
-          </h1>
+              <h1 className="mt-3 text-3xl font-bold text-slate-900">
+                Personal Statement Builder
+              </h1>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleStartOver}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white"
+            >
+              Start over
+            </button>
+          </div>
 
           <p className="mt-2 text-slate-600">
             Answer a few guided questions to prepare your first draft.
+            Your progress is saved automatically.
           </p>
         </div>
 
         <ProgressBar
           currentStep={currentStep}
-          totalSteps={totalSteps}
+          totalSteps={TOTAL_STEPS}
         />
 
         <form
@@ -177,6 +295,7 @@ export default function PersonalStatementPage() {
                 label="Full name"
                 value={answers.fullName}
                 placeholder="Alex Li"
+                autoComplete="name"
                 onChange={(value) =>
                   updateAnswer("fullName", value)
                 }
@@ -283,7 +402,12 @@ export default function PersonalStatementPage() {
                   label="Applicant"
                   value={answers.fullName}
                 />
-                <ReviewItem label="Course" value={answers.course} />
+
+                <ReviewItem
+                  label="Course"
+                  value={answers.course}
+                />
+
                 <ReviewItem
                   label="University"
                   value={answers.university}
@@ -298,6 +422,7 @@ export default function PersonalStatementPage() {
                   label="Motivation"
                   value={answers.motivation}
                 />
+
                 <ReviewItem
                   label="Relevant experience"
                   value={answers.experience}
@@ -318,7 +443,7 @@ export default function PersonalStatementPage() {
 
           <WizardNavigation
             currentStep={currentStep}
-            totalSteps={totalSteps}
+            totalSteps={TOTAL_STEPS}
             onBack={handleBack}
             onComplete={handleComplete}
           />
@@ -333,6 +458,7 @@ type TextInputProps = {
   label: string;
   value: string;
   placeholder: string;
+  autoComplete?: string;
   onChange: (value: string) => void;
 };
 
@@ -341,6 +467,7 @@ function TextInput({
   label,
   value,
   placeholder,
+  autoComplete,
   onChange,
 }: TextInputProps) {
   return (
@@ -354,12 +481,14 @@ function TextInput({
 
       <input
         id={id}
+        name={id}
         type="text"
         required
         value={value}
+        autoComplete={autoComplete}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-600"
+        className="w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
       />
     </div>
   );
@@ -391,12 +520,13 @@ function TextArea({
 
       <textarea
         id={id}
+        name={id}
         required
         rows={7}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full resize-none rounded-lg border border-slate-300 px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-600"
+        className="w-full resize-none rounded-lg border border-slate-300 px-4 py-3 text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
       />
     </div>
   );
@@ -405,7 +535,7 @@ function TextArea({
 type ReviewSectionProps = {
   title: string;
   onEdit: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 function ReviewSection({
@@ -415,8 +545,10 @@ function ReviewSection({
 }: ReviewSectionProps) {
   return (
     <section className="rounded-xl border border-slate-200 p-5">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-slate-900">{title}</h3>
+      <div className="flex items-center justify-between gap-4">
+        <h3 className="font-semibold text-slate-900">
+          {title}
+        </h3>
 
         <button
           type="button"
@@ -437,10 +569,16 @@ type ReviewItemProps = {
   value: string;
 };
 
-function ReviewItem({ label, value }: ReviewItemProps) {
+function ReviewItem({
+  label,
+  value,
+}: ReviewItemProps) {
   return (
     <div>
-      <p className="text-sm font-medium text-slate-700">{label}</p>
+      <p className="text-sm font-medium text-slate-700">
+        {label}
+      </p>
+
       <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-600">
         {value || "Not provided"}
       </p>
