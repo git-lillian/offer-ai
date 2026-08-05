@@ -171,7 +171,46 @@ export default function PersonalStatementResultPage() {
               </button>
             </div>
           </section>
+<div className="rounded-xl border border-violet-200 bg-violet-50 p-5">
+  <p className="text-sm font-semibold uppercase tracking-wide text-violet-700">
+    Optional add-on
+  </p>
 
+  <h2 className="mt-2 text-lg font-bold text-slate-900">
+    Human expert review
+  </h2>
+
+  <p className="mt-2 text-sm leading-6 text-slate-600">
+    Get detailed feedback on structure, clarity, relevance and
+    writing quality from a human reviewer.
+  </p>
+
+  <ul className="mt-4 space-y-2 text-sm text-slate-700">
+    <li>✓ Grammar and clarity review</li>
+    <li>✓ Structure and content feedback</li>
+    <li>✓ One reviewed version</li>
+    <li>✓ Delivery within 3 working days</li>
+  </ul>
+
+  <div className="mt-5 flex items-end justify-between">
+    <div>
+      <p className="text-xs text-slate-500">One-time payment</p>
+      <p className="text-2xl font-bold text-slate-900">£29.99</p>
+    </div>
+  </div>
+
+  <Link
+    href="/application/personal-statement/human-review"
+    className="mt-5 flex w-full justify-center rounded-lg bg-violet-600 px-4 py-3 font-semibold text-white hover:bg-violet-700"
+  >
+    Request human review
+  </Link>
+
+  <p className="mt-3 text-xs leading-5 text-slate-500">
+    Human review improves presentation but does not guarantee
+    admission or an offer.
+  </p>
+</div>
           <aside className="space-y-4">
             <div className="rounded-xl border border-slate-200 bg-white p-5">
               <h2 className="font-semibold text-slate-900">
