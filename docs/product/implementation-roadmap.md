@@ -8,8 +8,8 @@
 
 | Milestone | Status | Branch | PR | Merge commit |
 | --- | --- | --- | --- | --- |
-| 1. Foundation hardening | ✅ merged | `chore/foundation-hardening` | #2 | see below |
-| 2. UK admissions catalogue v1 | ⏳ next | — | — | — |
+| 1. Foundation hardening | ✅ merged | `chore/foundation-hardening` | #2 | `f159162` |
+| 2. UK admissions catalogue v1 | 🔄 in progress | `feat/uk-admissions-catalogue` | — | — |
 | 3. Real UK ingestion v1 | — | — | — | — |
 | 4. Recommendation engine v1 | — | — | — | — |
 | 5. Application OS v1 | — | — | — | — |
