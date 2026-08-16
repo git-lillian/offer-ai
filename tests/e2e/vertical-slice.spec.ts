@@ -90,7 +90,7 @@ test.describe("vertical slice", () => {
     await page.getByLabel("University").selectOption({ index: 0 });
     await page.getByLabel("Course").selectOption({ index: 0 });
     await page.getByLabel("Intake").selectOption({ index: 0 });
-    await page.getByLabel("Application cycle").selectOption({ index: 0 });
+    await page.getByLabel("Application cycle").selectOption("2026/27");
     await page.getByRole("button", { name: "Create case" }).click();
 
     // Case detail page with timeline.

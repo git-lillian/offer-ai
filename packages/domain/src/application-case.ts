@@ -25,7 +25,7 @@ export const APPLICATION_CASE_STATUSES = [
 export type ApplicationCaseStatus = (typeof APPLICATION_CASE_STATUSES)[number];
 
 export const APPLICATION_ROUTES = [
-  "ucs",
+  "ucas",
   "institution_direct",
   "agent_portal",
   "other",

@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+env:
+  # pnpm 11 build-script allowlist is defined in pnpm-workspace.yaml.
+  CI: true
+
 jobs:
   quality:
     name: typecheck / lint / unit tests / build
@@ -15,7 +19,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 11
+          version: 11.11.0
 
       - uses: actions/setup-node@v4
         with:
@@ -37,32 +41,99 @@ jobs:
       - name: Build
         run: pnpm build
 
-  rls-tests:
-    name: RLS / integration tests
+  integration:
+    name: RLS / DB integration tests (local Supabase)
     runs-on: ubuntu-latest
-    # These tests need a running Supabase stack and a .env.local; they run
-    # locally via `pnpm db:test`. Enable in CI by providing the secrets.
-    if: ${{ secrets.SUPABASE_URL != '' }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 11
+          version: 11.11.0
 
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
 
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+
+      - name: Start local Supabase stack (applies migrations)
+        run: supabase start
+
+      - name: Provision env
+        run: |
+          supabase status -o env > /tmp/supa.env
+          set -a; source /tmp/supa.env; set +a
+          cat > .env.local <<EOF
+          NEXT_PUBLIC_SUPABASE_URL=${API_URL}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=${ANON_KEY}
+          SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}
+          DATABASE_URL=${DB_URL}
+          AI_PROVIDER=fake
+          AI_MODEL=deepseek-v4-flash
+          EOF
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: RLS tests
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Seed development data
+        run: pnpm db:seed
+
+      - name: RLS / integration tests
+        run: pnpm db:test
+
+  e2e:
+    name: End-to-end tests (browser)
+    needs: [quality, integration]
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.11.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+
+      - name: Start local Supabase stack (applies migrations)
+        run: supabase start
+
+      - name: Provision env
         run: |
-          cp .env.example .env.local
-          pnpm db:test
+          supabase status -o env > /tmp/supa.env
+          set -a; source /tmp/supa.env; set +a
+          cat > .env.local <<EOF
+          NEXT_PUBLIC_SUPABASE_URL=${API_URL}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=${ANON_KEY}
+          SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}
+          DATABASE_URL=${DB_URL}
+          AI_PROVIDER=fake
+          AI_MODEL=deepseek-v4-flash
+          EOF
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Seed development data
+        run: pnpm db:seed
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build web app
+        run: pnpm --filter @offer-ai/web build
+
+      - name: Run e2e tests
+        run: pnpm test:e2e

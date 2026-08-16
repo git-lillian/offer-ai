@@ -21,9 +21,12 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
+    "@supabase/supabase-js": "^2.110.5",
+    "eslint": "^9",
     "playwright": "^1.62.1",
     "tsx": "^4",
     "typescript": "^5",
+    "typescript-eslint": "^8",
     "vitest": "^3"
   }
 }

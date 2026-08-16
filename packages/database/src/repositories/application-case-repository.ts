@@ -3,10 +3,41 @@ import type { Database } from "../types";
 import type {
   ApplicationCase,
   ApplicationEvent,
+  ApplicationEventType,
+  ApplicationCaseStatus,
+  ApplicationRoute,
 } from "@offer-ai/domain";
 
 type Db = SupabaseClient<Database>;
 
+export interface ApplicationCaseCreationInput {
+  studentId: string;
+  institutionId: string;
+  courseId: string;
+  courseIntakeId: string;
+  applicationCycleId: string;
+  applicationRoute: ApplicationRoute;
+  actorUserId: string;
+}
+
+export interface ApplicationCaseTransitionInput {
+  caseId: string;
+  toStatus: ApplicationCaseStatus;
+  actorUserId: string;
+  eventType: ApplicationEventType;
+  message?: string;
+  metadata?: Record<string, unknown> | null;
+}
+
+/**
+ * Application case persistence against the atomic, security-definer RPCs.
+ *
+ * Client-side insert/update policies on `application_cases` /
+ * `application_events` do not exist by design: the database enforces the
+ * status machine and the institution/course/intake/cycle invariants inside
+ * one transaction, and RLS is checked inside the functions. Repositories
+ * therefore never write those tables directly from the browser path.
+ */
 export class ApplicationCaseRepository {
   constructor(private readonly db: Db) {}
 
@@ -29,53 +60,72 @@ export class ApplicationCaseRepository {
     return (data ?? []).map((row) => this.toCase(row));
   }
 
-  async create(caseRecord: ApplicationCase): Promise<ApplicationCase> {
-    const { data, error } = await this.db
-      .from("application_cases")
-      .insert({
-        id: caseRecord.id,
-        student_id: caseRecord.studentId,
-        institution_id: caseRecord.institutionId,
-        course_id: caseRecord.courseId,
-        course_intake_id: caseRecord.courseIntakeId,
-        application_cycle_id: caseRecord.applicationCycleId,
-        application_route: caseRecord.applicationRoute,
-        current_status: caseRecord.currentStatus,
-      })
-      .select("*")
-      .single();
+  /** Atomically creates the case and its `created` event. */
+  async create(
+    input: ApplicationCaseCreationInput,
+  ): Promise<{ caseRecord: ApplicationCase; createdEvent: ApplicationEvent }> {
+    const { data, error } = await this.db.rpc("create_application_case", {
+      p_student_id: input.studentId,
+      p_institution_id: input.institutionId,
+      p_course_id: input.courseId,
+      p_course_intake_id: input.courseIntakeId,
+      p_application_cycle_id: input.applicationCycleId,
+      p_application_route: input.applicationRoute,
+      p_actor_user_id: input.actorUserId,
+    });
     if (error) throw error;
-    return this.toCase(data);
+
+    const payload = (data ?? {}) as {
+      case?: Database["public"]["Tables"]["application_cases"]["Row"];
+      event?: Database["public"]["Tables"]["application_events"]["Row"];
+    };
+    if (!payload.case || !payload.event) {
+      throw new Error("create_application_case returned an unexpected payload.");
+    }
+    return { caseRecord: this.toCase(payload.case), createdEvent: this.toEvent(payload.event) };
   }
 
-  async updateStatus(id: string, status: ApplicationCase["currentStatus"]) {
-    const { data, error } = await this.db
-      .from("application_cases")
-      .update({ current_status: status, updated_at: new Date().toISOString() })
-      .eq("id", id)
-      .select("*")
-      .single();
+  /** Atomically transitions status and appends the status event. */
+  async transition(
+    input: ApplicationCaseTransitionInput,
+  ): Promise<{ caseRecord: ApplicationCase; event: ApplicationEvent }> {
+    const { data, error } = await this.db.rpc("transition_application_case", {
+      p_case_id: input.caseId,
+      p_to_status: input.toStatus,
+      p_actor_user_id: input.actorUserId,
+      p_event_type: input.eventType,
+      p_message: input.message ?? "",
+      p_metadata: input.metadata ?? null,
+    });
     if (error) throw error;
-    return this.toCase(data);
+
+    const event = this.toEvent(
+      data as Database["public"]["Tables"]["application_events"]["Row"],
+    );
+    const caseRecord = await this.findById(input.caseId);
+    if (!caseRecord) throw new Error("Application case not found after transition.");
+    return { caseRecord, event };
   }
 
-  async appendEvent(event: ApplicationEvent): Promise<ApplicationEvent> {
-    const { data, error } = await this.db
-      .from("application_events")
-      .insert({
-        id: event.id,
-        case_id: event.caseId,
-        event_type: event.eventType,
-        status: event.status,
-        actor_user_id: event.actorUserId,
-        message: event.message,
-        metadata: event.metadata,
-        occurred_at: event.occurredAt.toISOString(),
-      })
-      .select("*")
-      .single();
+  /** Appends a non-status event (notes, documents) through the controlled RPC. */
+  async appendEvent(input: {
+    caseId: string;
+    eventType: ApplicationEventType;
+    status: ApplicationCaseStatus;
+    actorUserId: string;
+    message: string;
+    metadata?: Record<string, unknown> | null;
+  }): Promise<ApplicationEvent> {
+    const { data, error } = await this.db.rpc("append_application_event", {
+      p_case_id: input.caseId,
+      p_event_type: input.eventType,
+      p_status: input.status,
+      p_actor_user_id: input.actorUserId,
+      p_message: input.message,
+      p_metadata: input.metadata ?? null,
+    });
     if (error) throw error;
-    return this.toEvent(data);
+    return this.toEvent(data as Database["public"]["Tables"]["application_events"]["Row"]);
   }
 
   async listEvents(caseId: string): Promise<ApplicationEvent[]> {

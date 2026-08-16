@@ -11,11 +11,13 @@
   },
   "dependencies": {
     "@offer-ai/ai": "workspace:*",
+    "@offer-ai/config": "workspace:*",
     "@offer-ai/contracts": "workspace:*",
     "@offer-ai/database": "workspace:*",
     "@offer-ai/domain": "workspace:*",
     "@offer-ai/ui": "workspace:*",
     "@supabase/ssr": "^0.12.3",
+    "@supabase/supabase-js": "^2.110.5",
     "next": "16.2.10",
     "react": "19.2.4",
     "react-dom": "19.2.4"

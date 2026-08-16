@@ -320,3 +320,88 @@ DATABASE_URL=postgresql://supabase_admin:postgres@127.0.0.1:5432/postgres
 The remainder (localStorage flows, direct `review_orders` inserts, placeholder
 pricing/how-it-works pages, alert-based interactions, raw DeepSeek
 construction in a route) is prototype code to be replaced.
+
+## 13. Foundation Hardening audit (2026-08-16)
+
+A follow-up architecture audit verified the documented claims of the
+foundation against the implementation and fixed the gaps found. Findings:
+
+### Verified correct (documented claims match implementation)
+
+- Modular monolith layering: `packages/domain` is framework-free (no
+  Next/React/Supabase/AI imports); the web app and worker share domain
+  packages.
+- Migration discipline: `supabase/migrations/` (0001–0017) is the schema
+  source of truth; migrations are replayed cleanly from scratch
+  (`pnpm db:reset`).
+- RLS is enabled on all student-adjacent tables and exercised by automated
+  tests against real Supabase users.
+- Background jobs are Postgres-backed, idempotent, and integration-tested.
+- AI provider abstraction with a run ledger (`ai_runs`).
+
+### Defects found and fixed
+
+1. **`ucs` → `ucas`**: application-route value corrected everywhere (domain
+   constant, migration data fix + CHECK constraint, seed data).
+2. **Student identity coupling**: `student_profiles` was keyed on
+   `auth.users.id`, making a student exist only after registration. Refactored
+   to an independent entity (`student_profiles.id` canonical; nullable
+   `user_id` link; `account_status` lifecycle; `created_by_user_id`) with all
+   child tables repointed (migration 0011). Prospect creation by
+   advisers/guardians (`create_prospect` RPC), claiming (`claim_student_profile`
+   RPC + signup email-match claim), creator read-back for unclaimed prospects.
+3. **Access-grant semantics**: any active grant previously exposed the whole
+   Student 360. Now each resource table checks its own scope
+   (`has_scoped_grant`), so a document grant exposes exactly that document and
+   a case grant exactly that case (migration 0012 + regression tests).
+4. **Atomic application-case operations**: case creation and status
+   transitions previously wrote the row and the event in two requests,
+   allowing inconsistency. Now single security-definer RPCs create the case +
+   event atomically and transition status + event atomically; the state
+   machine and institution/course/intake/cycle invariants are enforced inside
+   the transaction (migration 0013). Client-side direct writes are blocked by
+   RLS; tests prove both the happy path and the invariant rejections.
+5. **UK-centric assumptions**: `target_entry_year` window was pinned to the
+   current UK cycle; country codes defaulted to `GB`; user preferences
+   defaulted to a UK locale/timezone/currency; the GPA check assumed a 5-point
+   scale. All removed; qualification systems became a lookup table
+   (migration 0014).
+6. **Catalogue hardening**: slugs for URLs, polymorphic external identifiers,
+   cycle-scoped fees with provenance, requirement verification status, source
+   freshness, per-course application routes (migration 0015).
+7. **Volatile facts in code**: the UK adapter hard-coded the UCAS equal-
+   consideration deadline ("29 January"). Removed; deadlines live in the
+   catalogue with provenance (ADR 0004 semantics).
+8. **PostgREST `return=representation` quirk**: `WITH CHECK` policies that
+   reference security-definer helpers fail for inserts when the client asks
+   for the row back (`Prefer: return=representation`). Prospect creation now
+   flows through a controlled RPC (migration 0016), avoiding the quirk and
+   keeping write authorization in one auditable place.
+9. **Restored databases lost schema ACLs**: `db:reset` (and restored dumps)
+   dropped the `public` schema ACL, producing "permission denied for schema
+   public" for every PostgREST role. Migration 0017 re-applies the standard
+   Supabase grants idempotently.
+10. **Layer violation**: `packages/database` imported `next/headers`,
+    coupling the database package to Next.js and breaking the worker build.
+    Replaced with a structural cookie-store contract.
+11. **pnpm 11 build-script allowlist**: the workspace file contained an
+    invalid `allowBuilds` placeholder that pnpm kept rewriting and that
+    blocked native builds (esbuild/sharp/unrs-resolver). Fixed with explicit
+    `allowBuilds: true` entries.
+12. **Declared dependencies**: `apps/web` and the root used undeclared
+    packages (e.g. `@supabase/supabase-js`, `eslint`) that only worked through
+    hoisting luck. Declared as direct dependencies.
+13. **CI**: the RLS/integration job was effectively disabled (gated on
+    secrets that don't exist). CI now starts a fresh Supabase stack
+    (`supabase/setup-cli` + `supabase start`), seeds, and runs `pnpm db:test`
+    plus Playwright e2e — the same gates as locally.
+
+### Regression coverage added
+
+- `supabase/tests/rls.test.ts` rewritten for the new semantics (identity
+  separation, claiming, scoped grants, RPC-only atomic case operations,
+  invariant rejections, internal-table isolation).
+- `supabase/tests/jobs.test.ts` (enqueue → claim → complete → idempotency).
+- e2e updated to a deterministic seed course/cycle combination.
+- All gates (`typecheck`, `lint`, `test`, `db:test`, `build`, `test:e2e`)
+  run green locally and in CI.

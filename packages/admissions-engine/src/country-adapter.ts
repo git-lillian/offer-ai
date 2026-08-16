@@ -10,7 +10,14 @@ import type { CourseRecommendation, RecommendationPipelineContext } from "./type
 
 export interface ApplicationCyclePolicy {
   entryYears: number[];
-  deadlineLabel: string;
+  /**
+   * Human-readable note about the cycle, when the country rules have
+   * something stable to say (e.g. portfolio windows). Deadlines are
+   * decision-critical, date-bearing facts and live in the admissions
+   * catalogue (cycle-scoped intake deadlines with provenance) — they are
+   * never hard-coded in adapters.
+   */
+  notes: string[];
 }
 
 export interface ApplicationPortfolioValidation {

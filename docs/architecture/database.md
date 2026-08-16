@@ -49,28 +49,30 @@ Naming convention: `domain_table`, e.g. `student_profiles`,
 
 | Table | Purpose |
 | --- | --- |
-| `student_profiles` | canonical student profile root (independent of any application) |
+| `student_profiles` | canonical student profile root; independent of auth (`id` is the canonical student id; `user_id` is the nullable link to the claimed account) |
 | `student_education` | schools / universities attended |
-| `student_qualifications` | qualifications, qualification systems, grades, predicted grades, GPA, language tests |
+| `student_qualifications` | qualifications, qualification systems (FK to `qualification_systems`), grades, predicted grades, explicit GPA scale (`gpa_scale_max`), language tests |
+| `qualification_systems` | extensible lookup of national qualification systems (A-Level, IB, Gaokao, …) — no migration needed to add a country system |
 | `student_experiences` | employment, internships, volunteering, projects, awards, research |
 | `student_goals` | study goals, career goals, target countries/levels/subjects |
 | `evidence_items` | first-class evidence linking claims to sources; provenance + verification |
 | `documents` | uploaded files (owner, storage path, checksum, processing status, version) |
-| `access_grants` | explicit grants (adviser/guardian) with scope, expiry, revocation |
+| `access_grants` | explicit scoped grants (adviser/guardian) with scope, resource, expiry, revocation |
 | `consents` | consent type, policy version, granted/revoked at, source |
 
 ### Admissions catalogue
 
 | Table | Purpose |
 | --- | --- |
-| `catalog_subjects` | subject taxonomy |
-| `catalog_institutions` | universities/colleges |
-| `catalog_courses` | courses (level, duration, fees, link to institution/subject) |
-| `catalog_course_intakes` | intakes per course |
+| `catalog_subjects` | subject taxonomy (slug for URLs) |
+| `catalog_institutions` | universities/colleges (slug for URLs) |
+| `catalog_courses` | courses (level, duration, fees, application routes, slug, link to institution/subject) |
+| `catalog_course_intakes` | intakes per course (cycle-scoped fees + deadline provenance) |
 | `catalog_application_cycles` | application cycles (2026/27, 2027/28, …) |
-| `catalog_course_requirements` | effective-dated structured requirements + source text |
-| `catalog_sources` | provenance of catalogue facts (official URL, owner, extractor version) |
+| `catalog_course_requirements` | effective-dated structured requirements + source text + verification status |
+| `catalog_sources` | provenance of catalogue facts (official URL, owner, extractor version, last verified) |
 | `catalog_source_snapshots` | raw snapshots with content hash (immutable) |
+| `catalog_entity_identifiers` | polymorphic external identifiers (UCAS code, UKPRN, HESA, …) per institution/course/subject |
 
 ### Admissions
 
@@ -145,16 +147,36 @@ patterns of the vertical slice:
 
 RLS is **enabled on every table** that can hold student data. Policy rules:
 
-- A student can access their own rows: `auth.uid() = student_id`
-  (for tables keyed by student) or `auth.uid() = user_id`.
-- Adviser/guardian access flows through `has_student_access(target_student_id)`
-  — a `SECURITY DEFINER` helper that consults active `access_grants`; it is
-  used inside policies so RLS is never bypassed by the client.
+- A student can access their own rows: `auth.uid() = user_id` on
+  `student_profiles`, or via `is_student_owner(student_id)` on child tables
+  (the profile's canonical `id` is the join key, not the auth account).
+- Prospect lifecycle: advisers/guardians create unclaimed prospects through
+  the `create_prospect` RPC; creators may list their own unclaimed prospects;
+  a profile is claimed by the signup trigger (email match) or the
+  `claim_student_profile` RPC; creators never silently become owners.
+- **Scoped grants.** `access_grants` carry a `scope` (`profile`, `case`,
+  `document`, `artifact`, `service`) and an optional `scope_id`. Each resource
+  table checks exactly the scope it belongs to via `has_scoped_grant(...)`:
+  - a document grant exposes **exactly that document** — never the profile,
+    cases or artifacts;
+  - a case grant exposes **exactly that case** — never other cases or the
+    profile;
+  - a profile grant exposes the Student 360 profile data and cases.
+  Revocation (or expiry) removes access immediately.
+- **Controlled writes.** `application_cases` and `application_events` have no
+  client insert/update policies: creation, transitions and event appends go
+  through security-definer RPCs (`create_application_case`,
+  `transition_application_case`, `append_application_event`) that enforce the
+  state machine and the institution/course/intake/cycle invariants inside one
+  transaction. The same pattern is used for prospect creation and claiming.
 - Catalogue tables are readable by `anon` and `authenticated` (public
   information), writable only by the service role.
 - `audit_logs`, `ai_runs`, `background_jobs`, `catalog_source_snapshots`:
   no client policies — service-role only.
 - The service-role key (server/worker only) bypasses RLS by design.
+- `0017_standard_schema_grants` restores the standard Supabase schema/table
+  privileges idempotently (self-healing for restored databases and after
+  `db:reset`); RLS remains the real access boundary.
 
 RLS policies are exercised by automated tests in `supabase/tests/` (see
 `docs/architecture/security.md` and the testing section).

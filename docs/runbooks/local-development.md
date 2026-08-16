@@ -101,6 +101,27 @@ pnpm test            # unit + integration tests
 pnpm build           # production build (web + worker)
 ```
 
+> **pnpm 11 note:** build scripts (esbuild, sharp, unrs-resolver) are
+> allowlisted in `pnpm-workspace.yaml` (`allowBuilds`). Do not replace the
+> entries with the `"set this to true or false"` placeholders pnpm writes —
+> set them to `true` explicitly, otherwise native builds are skipped.
+
+### The managed CLI stack (alternative to docker-compose)
+
+CI uses the official Supabase CLI (`supabase/setup-cli` + `supabase start`,
+configured by `supabase/config.toml`). To use it locally instead of the
+docker-compose stack:
+
+```bash
+supabase start                       # port 54321 API, 54322 Postgres
+# then point .env.local at the CLI stack:
+#   DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
+```
+
+The CLI applies migrations itself; run `pnpm db:seed` (never the CLI's
+auto-seed — it is disabled because `pnpm db:seed` provisions the demo auth
+user first).
+
 ### End-to-end tests
 
 ```bash

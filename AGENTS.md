@@ -22,7 +22,8 @@ documented in `docs/`. Read before writing code.
    orchestrate and map results. Business rules live in `packages/domain`
    services or application services.
 2. **`packages/domain` is framework-free.** Never import Next.js, React,
-   Supabase, Stripe or AI SDKs into it.
+   Supabase, Stripe or AI SDKs into it. The same applies to other packages
+   unless they are UI/delivery by definition.
 3. **Never bypass RLS.** Client data access goes through the RLS-enforced
    Supabase clients. Service-role credentials are server/worker only and
    never in client bundles.
@@ -37,7 +38,8 @@ documented in `docs/`. Read before writing code.
 8. **Validate every boundary with zod** (`packages/contracts`): route
    payloads, form input, AI output, queue messages, webhook payloads.
 9. **Never trust `user_id` from the browser.** Derive identity from the
-   authenticated session server-side.
+   authenticated session server-side; resolve the student profile id from the
+   session, never from the request body.
 10. **AI output never silently becomes verified student fact.** It enters
     the evidence pipeline as `machine_extracted` and requires confirmation.
 11. **The LLM never decides eligibility.** `packages/admissions-engine` is
@@ -51,6 +53,17 @@ documented in `docs/`. Read before writing code.
     `console.log`, and propagate correlation ids.
 16. **Add tests for domain behaviour** (unit) and RLS boundaries
     (`supabase/tests`). Run the full gate before finishing.
+17. **Controlled writes for sensitive aggregates.** Application cases,
+    events, prospect creation and student claiming are written only through
+    security-definer RPCs (`create_application_case`,
+    `transition_application_case`, `append_application_event`,
+    `create_prospect`, `claim_student_profile`) that re-check authorization
+    and enforce invariants inside one transaction. Client tables keep
+    read-only policies for these aggregates. Do not add client insert/update
+    policies for them.
+18. **Volatile facts live in the database.** Deadlines, fees and other
+    date-bearing decision-critical facts belong in the catalogue with
+    provenance — never hard-coded in country adapters or application code.
 
 ## Quality gate (run all, fix everything)
 

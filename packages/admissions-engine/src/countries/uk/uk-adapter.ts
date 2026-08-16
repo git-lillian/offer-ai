@@ -30,7 +30,9 @@ export class UKCountryAdapter implements AdmissionsCountryAdapter {
     const entryYear = Number(match[1]);
     return {
       entryYears: [entryYear],
-      deadlineLabel: "UCAS equal consideration deadline: 29 January",
+      notes: [
+        "Equal-consideration deadlines are published per intake in the admissions catalogue with source provenance.",
+      ],
     };
   }
 

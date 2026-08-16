@@ -18,9 +18,13 @@ type Table<P extends { [key: string]: unknown }> = {
 
 export type Tables = {
   student_profiles: Table<{
-    user_id: string;
+    id: string;
+    user_id: string | null;
     full_name: string;
-    email: string;
+    email: string | null;
+    account_status: string;
+    created_by_user_id: string | null;
+    claimed_at: string | null;
     current_country_code: string | null;
     nationality_country_code: string | null;
     current_education_level: string | null;
@@ -41,7 +45,7 @@ export type Tables = {
     id: string;
     student_id: string;
     institution_name: string;
-    country_code: string;
+    country_code: string | null;
     started_year: number;
     ended_year: number | null;
     degree_title: string | null;
@@ -58,8 +62,17 @@ export type Tables = {
     grade: string | null;
     predicted_grade: string | null;
     overall_gpa: number | null;
+    gpa_scale_max: number | null;
     completed_year: number | null;
     created_at: string;
+  }>;
+
+  qualification_systems: Table<{
+    code: string;
+    name: string;
+    description: string | null;
+    country_codes: string[];
+    grading_scale: string | null;
   }>;
 
   student_experiences: Table<{
@@ -152,6 +165,7 @@ export type Tables = {
   catalog_subjects: Table<{
     id: string;
     code: string;
+    slug: string;
     name: string;
     parent_subject_id: string | null;
   }>;
@@ -159,6 +173,7 @@ export type Tables = {
   catalog_institutions: Table<{
     id: string;
     name: string;
+    slug: string;
     country_code: string;
     city: string | null;
     website_url: string | null;
@@ -171,10 +186,12 @@ export type Tables = {
     institution_id: string;
     subject_id: string | null;
     title: string;
+    slug: string;
     level: string;
     duration_months: number | null;
     tuition_fee: number | null;
     currency_code: string | null;
+    application_routes: string[];
     created_at: string;
     updated_at: string;
   }>;
@@ -194,6 +211,12 @@ export type Tables = {
     intake_month: number;
     intake_year: number;
     application_deadline: string | null;
+    tuition_fee: number | null;
+    fee_currency_code: string | null;
+    fee_source_id: string | null;
+    fee_observed_at: string | null;
+    application_deadline_source_id: string | null;
+    application_deadline_observed_at: string | null;
     closed: boolean;
   }>;
 
@@ -209,6 +232,7 @@ export type Tables = {
     observed_at: string;
     published_at: string;
     superseded_by_id: string | null;
+    verification_status: string;
   }>;
 
   catalog_sources: Table<{
@@ -219,8 +243,18 @@ export type Tables = {
     extractor_version: string | null;
     fetch_policy: string | null;
     enabled: boolean;
+    last_verified_at: string | null;
     created_at: string;
     updated_at: string;
+  }>;
+
+  catalog_entity_identifiers: Table<{
+    id: string;
+    entity_type: string;
+    entity_id: string;
+    identifier_type: string;
+    identifier_value: string;
+    created_at: string;
   }>;
 
   catalog_source_snapshots: Table<{
@@ -392,6 +426,53 @@ export type Database = {
           p_max_attempts: number;
         };
         Returns: Tables["background_jobs"]["Row"];
+      };
+      create_application_case: {
+        Args: {
+          p_student_id: string;
+          p_institution_id: string;
+          p_course_id: string;
+          p_course_intake_id: string;
+          p_application_cycle_id: string;
+          p_application_route: string;
+          p_actor_user_id: string;
+        };
+        Returns: Record<string, unknown>;
+      };
+      transition_application_case: {
+        Args: {
+          p_case_id: string;
+          p_to_status: string;
+          p_actor_user_id: string;
+          p_event_type: string;
+          p_message: string;
+          p_metadata: Record<string, unknown> | null;
+        };
+        Returns: Record<string, unknown>;
+      };
+      append_application_event: {
+        Args: {
+          p_case_id: string;
+          p_event_type: string;
+          p_status: string;
+          p_actor_user_id: string;
+          p_message: string;
+          p_metadata: Record<string, unknown> | null;
+        };
+        Returns: Record<string, unknown>;
+      };
+      claim_student_profile: {
+        Args: {
+          p_student_id: string;
+        };
+        Returns: Record<string, unknown>;
+      };
+      create_prospect: {
+        Args: {
+          p_full_name: string;
+          p_email: string | null;
+        };
+        Returns: Record<string, unknown>;
       };
     };
     Enums: Record<string, never>;

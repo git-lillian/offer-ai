@@ -47,7 +47,11 @@ packages/admissions-engine/src/
 The UK adapter v1 implements:
 
 - **Application cycle policy**: entry year validation against configured
-  `ApplicationCycle` (e.g. 2026/27). No admission portfolio validation yet.
+  `ApplicationCycle` (e.g. 2026/27). **Deadlines are not hard-coded in
+  adapters** — decision-critical, date-bearing facts (equal-consideration
+  deadlines, fee deadlines) live in the admissions catalogue with source
+  provenance (`catalog_course_intakes.application_deadline*`); the adapter
+  returns stable notes only. No admission portfolio validation yet.
 - **Required documents baseline**: returns a placeholder document list
   (to be expanded by the documents vertical slice).
 - **External status mapping**: placeholder mapping of the internal

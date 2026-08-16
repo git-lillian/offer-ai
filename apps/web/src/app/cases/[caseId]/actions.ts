@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { transitionApplicationCaseSchema } from "@offer-ai/contracts";
-import { ApplicationCaseRepository, AuditLogRepository } from "@offer-ai/database";
+import {
+  ApplicationCaseRepository,
+  AuditLogRepository,
+  StudentProfileRepository,
+} from "@offer-ai/database";
 import { ApplicationCaseTransitionService } from "@offer-ai/domain";
 import { requireUser } from "@/lib/auth";
 import { getServerClient } from "@/lib/supabase/server";
@@ -28,9 +32,12 @@ export async function transitionStatusAction(
     const user = await requireUser();
     const supabase = await getServerClient();
 
+    const profileRepo = new StudentProfileRepository(supabase);
+    const profile = await profileRepo.findByUserId(user.id);
+
     const caseRepo = new ApplicationCaseRepository(supabase);
     const existing = await caseRepo.findById(parsed.data.caseId);
-    if (!existing || existing.studentId !== user.id) {
+    if (!existing || existing.studentId !== (profile?.id ?? "")) {
       return { error: "Application case not found." };
     }
 

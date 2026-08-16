@@ -6,6 +6,9 @@ import { getServerClient } from "@/lib/supabase/server";
 /**
  * Student onboarding application service — persists each wizard step to the
  * canonical Student 360 profile in Postgres (never localStorage).
+ *
+ * The profile row is created by the signup trigger (`handle_new_user`); this
+ * service resolves the authenticated user's profile and updates it in place.
  */
 export class OnboardingService {
   constructor(
@@ -14,11 +17,11 @@ export class OnboardingService {
   ) {}
 
   async getProfile(): Promise<StudentProfile | null> {
-    return this.repo.findById(this.userId);
+    return this.repo.findByUserId(this.userId);
   }
 
   async saveStep(patch: Partial<StudentProfile>): Promise<StudentProfile> {
-    const existing = (await this.repo.findById(this.userId)) ?? this.emptyProfile();
+    const existing = (await this.repo.findByUserId(this.userId)) ?? this.emptyProfile();
     const updated = { ...existing, ...patch, updatedAt: new Date() };
     return this.repo.createOrUpdate(updated);
   }
@@ -33,9 +36,13 @@ export class OnboardingService {
 
   private emptyProfile(): StudentProfile {
     return {
+      id: crypto.randomUUID(),
       userId: this.userId,
       fullName: "",
-      email: "",
+      email: null,
+      accountStatus: "claimed",
+      createdByUserId: null,
+      claimedAt: new Date(),
       currentCountryCode: null,
       nationalityCountryCode: null,
       currentEducationLevel: null,

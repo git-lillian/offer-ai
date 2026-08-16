@@ -36,8 +36,14 @@ export async function createApplicationCaseAction(
   const user = await requireUser();
   const supabase = await getServerClient();
 
+  const profileRepo = new StudentProfileRepository(supabase);
+  const profile = await profileRepo.findByUserId(user.id);
+  if (!profile) {
+    return { error: "Student profile not found. Complete onboarding first." };
+  }
+
   const service = new ApplicationCaseService({
-    studentProfileRepository: new StudentProfileRepository(supabase),
+    studentProfileRepository: profileRepo,
     institutionRepository: new InstitutionRepository(supabase),
     courseRepository: new CourseRepository(supabase),
     courseIntakeRepository: new CourseIntakeRepository(supabase),
@@ -47,8 +53,9 @@ export async function createApplicationCaseAction(
 
   try {
     const { caseRecord } = await service.create({
-      studentId: user.id,
+      studentId: profile.id,
       ...parsed.data,
+      actorUserId: user.id,
     });
 
     redirect(`/cases/${caseRecord.id}`);

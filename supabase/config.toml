@@ -1,0 +1,50 @@
+# Supabase CLI configuration — used by CI (`supabase start`) and by
+# developers who prefer the managed CLI stack.
+#
+# The migrations in supabase/migrations/ are the source of truth; this file
+# only configures the local/CI runtime. The docker-compose stack documented
+# in docs/runbooks/local-development.md is an equivalent alternative.
+
+project_id = "offer-ai"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[db.migrations]
+enabled = true
+schema_paths = ["./migrations"]
+
+[db.seed]
+# Seeding is driven by `pnpm db:seed` (it provisions the demo auth user via
+# the Auth admin API before applying SQL). The CLI must not seed automatically
+# on start/reset, or the SQL would fail on the missing user.
+enabled = false
+sql_paths = ["./seed.sql"]
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+
+[storage]
+enabled = true
+
+[studio]
+enabled = true
+
+[analytics]
+enabled = false
+
+[experimental]
+# No edge functions / cron jobs configured yet.

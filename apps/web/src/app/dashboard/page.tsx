@@ -40,10 +40,8 @@ export default async function DashboardPage() {
   const caseRepo = new ApplicationCaseRepository(supabase);
   const taskRepo = new ApplicationTaskRepository(supabase);
 
-  const [profile, cases] = await Promise.all([
-    profileRepo.findById(user.id),
-    caseRepo.listByStudent(user.id),
-  ]);
+  const profile = await profileRepo.findByUserId(user.id);
+  const cases = await caseRepo.listByStudent(profile?.id ?? "00000000-0000-0000-0000-000000000000");
 
   if (profile && !profile.onboardingCompletedAt) {
     redirect("/onboarding");

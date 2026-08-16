@@ -3,6 +3,8 @@
  * structured requirements with effective dating and source provenance.
  */
 
+import type { ApplicationRoute } from "./application-case";
+
 export const COURSE_LEVELS = [
   "foundation",
   "undergraduate",
@@ -47,6 +49,8 @@ export interface Course {
   durationMonths: number | null;
   tuitionFee: number | null;
   currencyCode: string | null;
+  /** Official application routes for this course (e.g. ["ucas", "institution_direct"]). */
+  applicationRoutes: ApplicationRoute[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -61,6 +65,8 @@ export interface CourseIntake {
   intakeMonth: IntakeMonth;
   intakeYear: number;
   applicationDeadline: Date | null;
+  tuitionFee: number | null;
+  feeCurrencyCode: string | null;
   closed: boolean;
 }
 
