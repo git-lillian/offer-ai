@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@offer-ai/ai": "workspace:*",
+    "@offer-ai/config": "workspace:*",
     "@offer-ai/contracts": "workspace:*",
     "@offer-ai/database": "workspace:*",
     "@offer-ai/domain": "workspace:*",

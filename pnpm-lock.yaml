@@ -38,6 +38,9 @@ importers:
       '@offer-ai/ai':
         specifier: workspace:*
         version: link:../../packages/ai
+      '@offer-ai/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@offer-ai/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
