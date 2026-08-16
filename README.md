@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Offer.ai
 
-## Getting Started
+Offer.ai is a digital university admissions platform: a guided process that
+helps students build stronger applications — onboarding, eligibility,
+application cases, documents, AI-assisted writing and (future) human
+advisers.
 
-First, run the development server:
+This repository is the **production foundation**: a modular monolith with a
+background worker, framework-free domain packages, a migration-controlled
+Supabase database with Row Level Security, and a working end-to-end student
+flow.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Repository layout
+
+```text
+apps/
+  web/            Next.js application (UI + route handlers + server actions)
+  worker/         Node background worker (durable job consumer)
+packages/
+  domain/         entities, value objects, errors, services (framework-free)
+  contracts/      zod schemas + DTOs at application boundaries
+  database/       Supabase clients, repositories, typed schema
+  ai/             AI provider abstraction (DeepSeek, fake) + prompts
+  admissions-engine/  deterministic eligibility pipeline + country adapters
+  ingestion/      ingestion pipeline interfaces (no crawler yet)
+  billing/        billing domain types (Stripe later)
+  notifications/  notification interfaces
+  ui/             shared React presentation components
+  config/         environment validation, feature flags, logger
+supabase/
+  migrations/     versioned SQL migrations (source of truth for the schema)
+  seed.sql        development seed data
+  tests/          RLS + background-job integration tests
+docs/
+  architecture/   system, database, security, ai, jobs, ingestion, country
+  product/        vision, domain map
+  adr/            architectural decision records
+  runbooks/       local development
+tests/
+  e2e/            Playwright critical-flow tests
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Quick start
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Prerequisites: Node ≥ 20, pnpm ≥ 9, Docker (local Supabase stack).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm install
+cp .env.example .env.local      # fill in local Supabase values (see runbook)
+pnpm db:migrate                 # apply migrations
+pnpm db:seed                    # development data
+pnpm dev                        # web app on http://localhost:3000
+pnpm worker:dev                 # background worker (separate terminal)
+```
 
-## Learn More
+Full instructions: [`docs/runbooks/local-development.md`](docs/runbooks/local-development.md).
 
-To learn more about Next.js, take a look at the following resources:
+## Quality gates
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+pnpm typecheck      # strict TS across the workspace
+pnpm lint           # eslint (no warnings tolerated)
+pnpm test           # unit tests
+pnpm db:test        # integration + RLS tests against local Supabase
+pnpm test:e2e       # Playwright critical flows (browser)
+pnpm build          # production build
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Architecture in one paragraph
 
-## Deploy on Vercel
+The web app and the worker share the same domain packages. Business logic
+lives in `packages/domain` (pure TypeScript, no framework imports);
+repositories are implemented in `packages/database` against Supabase
+Postgres, where Row Level Security protects every student-adjacent table;
+AI inference goes through the provider abstraction in `packages/ai`; and
+long-running work is enqueued as durable Postgres-backed jobs consumed by
+`apps/worker`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- [System overview](docs/architecture/system-overview.md)
+- [Database](docs/architecture/database.md)
+- [Security](docs/architecture/security.md)
+- [AI](docs/architecture/ai.md)
+- [Background jobs](docs/architecture/background-jobs.md)
+- [Domain map](docs/product/domain-map.md)
+- [ADR index](docs/adr/)
+- [Prototype migration plan](docs/architecture/prototype-migration.md)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Status
+
+Implemented: authentication (Supabase), Student 360 onboarding, dashboard,
+application-case creation with append-only event history, RLS on all student
+data, AI provider abstraction with run ledger, Postgres-backed background
+worker with one demo job, 50+ automated tests, CI, and documentation.
+
+Planned next (see the final report): admissions catalogue + recommendation
+engine v1, document studio, marketplace.
