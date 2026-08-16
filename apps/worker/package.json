@@ -1,0 +1,33 @@
+{
+  "name": "@offer-ai/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "build": "tsc --noEmit",
+    "lint": "eslint src --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@offer-ai/ai": "workspace:*",
+    "@offer-ai/config": "workspace:*",
+    "@offer-ai/contracts": "workspace:*",
+    "@offer-ai/database": "workspace:*",
+    "@offer-ai/domain": "workspace:*",
+    "pg": "^8.14.0",
+    "pino": "^9"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/pg": "^8",
+    "eslint": "^9",
+    "tsx": "^4",
+    "typescript": "^5",
+    "typescript-eslint": "^8",
+    "vitest": "^3"
+  }
+}

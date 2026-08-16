@@ -2,28 +2,28 @@
   "name": "offer-ai",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+  "packageManager": "pnpm@11.11.0",
+  "engines": {
+    "node": ">=20"
   },
-  "dependencies": {
-    "@supabase/ssr": "^0.12.3",
-    "@supabase/supabase-js": "^2.110.5",
-    "next": "16.2.10",
-    "openai": "^7.4.0",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
+  "scripts": {
+    "dev": "pnpm --filter @offer-ai/web dev",
+    "worker:dev": "pnpm --filter @offer-ai/worker dev",
+    "build": "pnpm -r build",
+    "lint": "eslint . --max-warnings 0 && pnpm --filter @offer-ai/web lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:migrate": "tsx packages/database/scripts/migrate.ts",
+    "db:seed": "tsx packages/database/scripts/seed.ts",
+    "db:test": "vitest run --config supabase/tests/vitest.config.ts",
+    "db:reset": "tsx packages/database/scripts/migrate.ts --reset",
+    "test:e2e": "playwright test --config tests/playwright.config.ts"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.10",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "@playwright/test": "^1.62.1",
+    "playwright": "^1.62.1",
+    "tsx": "^4",
+    "typescript": "^5",
+    "vitest": "^3"
   }
 }
