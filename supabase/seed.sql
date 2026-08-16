@@ -150,3 +150,124 @@ values (
   now() + interval '14 days'
 )
 on conflict (id) do nothing;
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Milestone 2 catalogue expansion
+--
+-- Additional universities/courses are DEVELOPMENT FIXTURES: the courses,
+-- requirements and fees are fabricated sample content for exercising search,
+-- filters, pagination and provenance display. They are never labelled as
+-- verified facts — requirements carry no source (shown as fixtures in the
+-- UI) and verification_status stays `unverified`.
+-- ═══════════════════════════════════════════════════════════════════════════
+
+insert into public.catalog_institutions (id, name, slug, country_code, city, website_url)
+values
+  ('31000000-0000-0000-0000-000000000001', 'University of Glasgow', 'university-of-glasgow', 'GB', 'Glasgow', 'https://www.gla.ac.uk'),
+  ('31000000-0000-0000-0000-000000000002', 'University of Leeds', 'university-of-leeds', 'GB', 'Leeds', 'https://www.leeds.ac.uk')
+on conflict (id) do nothing;
+
+insert into public.catalog_subjects (id, code, slug, name)
+values
+  ('31000000-0000-0000-0000-000000000003', 'law', 'law', 'Law'),
+  ('31000000-0000-0000-0000-000000000004', 'engineering', 'engineering', 'Engineering'),
+  ('31000000-0000-0000-0000-000000000005', 'business', 'business', 'Business')
+on conflict (id) do nothing;
+
+-- Courses: existing curated set plus undergraduate/postgraduate fixtures.
+insert into public.catalog_courses (id, institution_id, subject_id, title, slug, level, duration_months, tuition_fee, currency_code, application_routes, international_applicants_supported)
+values
+  -- Curated set (official sources below)
+  ('32000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '11000000-0000-0000-0000-000000000001', 'BSc Computer Science', 'bsc-computer-science', 'undergraduate', 48, 28950, 'GBP', '{ucas,institution_direct}', true),
+  ('32000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000003', '31000000-0000-0000-0000-000000000005', 'BSc Economics', 'bsc-economics', 'undergraduate', 36, 26040, 'GBP', '{ucas,institution_direct}', true),
+  -- Development fixtures (no official source; unverified)
+  ('32000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', '31000000-0000-0000-0000-000000000005', 'MSc Business Analytics', 'msc-business-analytics', 'postgraduate_taught', 12, 31500, 'GBP', '{institution_direct}', true),
+  ('32000000-0000-0000-0000-000000000004', '31000000-0000-0000-0000-000000000001', '31000000-0000-0000-0000-000000000003', 'LLB Law', 'llb-law', 'undergraduate', 48, 22500, 'GBP', '{ucas}', true),
+  ('32000000-0000-0000-0000-000000000005', '31000000-0000-0000-0000-000000000001', '31000000-0000-0000-0000-000000000003', 'MSc Law', 'msc-law', 'postgraduate_taught', 12, 26000, 'GBP', '{institution_direct}', true),
+  ('32000000-0000-0000-0000-000000000006', '31000000-0000-0000-0000-000000000002', '31000000-0000-0000-0000-000000000004', 'BEng Mechanical Engineering', 'beng-mechanical-engineering', 'undergraduate', 48, 27000, 'GBP', '{ucas,institution_direct}', true),
+  ('32000000-0000-0000-0000-000000000007', '31000000-0000-0000-0000-000000000002', '11000000-0000-0000-0000-000000000002', 'MSc Data Science and AI', 'msc-data-science-and-ai', 'postgraduate_taught', 12, 29500, 'GBP', '{institution_direct}', true)
+on conflict (id) do nothing;
+
+insert into public.catalog_application_cycles (id, code, starts_year, ends_year, status)
+values
+  ('33000000-0000-0000-0000-000000000001', '2028/29', 2028, 2029, 'upcoming')
+on conflict (id) do nothing;
+
+insert into public.catalog_sources (id, name, url, source_owner, extractor_version, fetch_policy, enabled, last_verified_at)
+values
+  ('35000000-0000-0000-0000-000000000001', 'Edinburgh undergraduate prospectus', 'https://www.ed.ac.uk/studying/undergraduate', 'University of Edinburgh', 'manual', 'monthly', true, now()),
+  ('35000000-0000-0000-0000-000000000002', 'Birmingham undergraduate prospectus', 'https://www.birmingham.ac.uk/study/undergraduate', 'University of Birmingham', 'manual', 'monthly', true, now())
+on conflict (id) do nothing;
+
+-- Intakes for the new courses (fixture courses keep deadlines/provenance null;
+-- the curated additions carry deadline provenance from their official source).
+insert into public.catalog_course_intakes (id, course_id, application_cycle_id, intake_month, intake_year, closed, tuition_fee, fee_currency_code, fee_source_id, fee_observed_at, application_deadline, application_deadline_source_id, application_deadline_observed_at)
+values
+  -- Curated additions
+  ('34000000-0000-0000-0000-000000000001', '32000000-0000-0000-0000-000000000001', '13000000-0000-0000-0000-000000000001', 9, 2026, false, 28950, 'GBP', '35000000-0000-0000-0000-000000000001', now(), '2026-01-29 23:59:59+00', '35000000-0000-0000-0000-000000000001', now()),
+  ('34000000-0000-0000-0000-000000000002', '32000000-0000-0000-0000-000000000002', '13000000-0000-0000-0000-000000000001', 9, 2026, false, 26040, 'GBP', '35000000-0000-0000-0000-000000000002', now(), '2026-01-29 23:59:59+00', '35000000-0000-0000-0000-000000000002', now()),
+  -- Development fixtures
+  ('34000000-0000-0000-0000-000000000003', '32000000-0000-0000-0000-000000000003', '13000000-0000-0000-0000-000000000001', 9, 2026, false, 31500, 'GBP', null, now(), null, null, null),
+  ('34000000-0000-0000-0000-000000000004', '32000000-0000-0000-0000-000000000004', '13000000-0000-0000-0000-000000000001', 9, 2026, false, 22500, 'GBP', null, now(), null, null, null),
+  ('34000000-0000-0000-0000-000000000005', '32000000-0000-0000-0000-000000000005', '13000000-0000-0000-0000-000000000001', 9, 2026, false, 26000, 'GBP', null, now(), null, null, null),
+  ('34000000-0000-0000-0000-000000000006', '32000000-0000-0000-0000-000000000006', '13000000-0000-0000-0000-000000000001', 9, 2026, false, 27000, 'GBP', null, now(), null, null, null),
+  ('34000000-0000-0000-0000-000000000007', '32000000-0000-0000-0000-000000000007', '13000000-0000-0000-0000-000000000001', 9, 2026, false, 29500, 'GBP', null, now(), null, null, null),
+  -- 2027/28 intakes for fixture courses (so the entry-year filter has data)
+  ('34000000-0000-0000-0000-000000000008', '32000000-0000-0000-0000-000000000007', '13000000-0000-0000-0000-000000000002', 9, 2027, false, 30500, 'GBP', null, now(), null, null, null),
+  ('34000000-0000-0000-0000-000000000009', '32000000-0000-0000-0000-000000000003', '13000000-0000-0000-0000-000000000002', 9, 2027, false, 32500, 'GBP', null, now(), null, null, null)
+on conflict (id) do nothing;
+
+-- Requirements for the curated undergraduate additions (verified, official).
+insert into public.catalog_course_requirements (id, course_id, kind, structured, source_text, source_id, effective_from, verification_status)
+values
+  (
+    '36000000-0000-0000-0000-000000000001',
+    '32000000-0000-0000-0000-000000000001',
+    'academic',
+    '{"aLevels":"AAA","aLevelSubjects":"mathematics","gradesLevel":"a_level"}',
+    'AAA at A Level including Mathematics. International equivalents accepted.',
+    '35000000-0000-0000-0000-000000000001',
+    now(),
+    'human_verified'
+  ),
+  (
+    '36000000-0000-0000-0000-000000000002',
+    '32000000-0000-0000-0000-000000000001',
+    'language',
+    '{"test":"IELTS","minimumBand":6.5,"componentMinimum":5.5}',
+    'IELTS 6.5 overall with at least 5.5 in each component (or equivalent).',
+    '35000000-0000-0000-0000-000000000001',
+    now(),
+    'human_verified'
+  ),
+  (
+    '36000000-0000-0000-0000-000000000003',
+    '32000000-0000-0000-0000-000000000002',
+    'academic',
+    '{"aLevels":"AAB","aLevelSubjects":"mathematics, economics","gradesLevel":"a_level"}',
+    'AAB at A Level including Mathematics and Economics (or equivalent).',
+    '35000000-0000-0000-0000-000000000002',
+    now(),
+    'human_verified'
+  ),
+  -- Fixture requirements (no source → shown as development fixtures in the UI)
+  (
+    '36000000-0000-0000-0000-000000000004',
+    '32000000-0000-0000-0000-000000000004',
+    'academic',
+    '{"aLevels":"ABB","gradesLevel":"a_level"}',
+    'ABB at A Level (development fixture — not verified against the official source).',
+    null,
+    now(),
+    'unverified'
+  ),
+  (
+    '36000000-0000-0000-0000-000000000005',
+    '32000000-0000-0000-0000-000000000007',
+    'academic',
+    '{"degreeClass":"2:1","degreeField":"computer science, mathematics, engineering","gradesLevel":"uk_undergraduate"}',
+    'A UK 2:1 honours degree in a quantitative discipline (development fixture).',
+    null,
+    now(),
+    'unverified'
+  )
+on conflict (id) do nothing;

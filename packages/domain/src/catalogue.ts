@@ -26,6 +26,8 @@ export type CourseStudyMode = (typeof COURSE_STUDY_MODES)[number];
 export interface Institution {
   id: string;
   name: string;
+  /** Stable URL key for catalogue browsing. */
+  slug: string;
   countryCode: string;
   city: string | null;
   websiteUrl: string | null;
@@ -36,6 +38,8 @@ export interface Institution {
 export interface Subject {
   id: string;
   code: string;
+  /** Stable URL key for catalogue browsing. */
+  slug: string;
   name: string;
   parentSubjectId: string | null;
 }
@@ -45,12 +49,16 @@ export interface Course {
   institutionId: string;
   subjectId: string | null;
   title: string;
+  /** Stable URL key for catalogue browsing (unique per institution). */
+  slug: string;
   level: CourseLevel;
   durationMonths: number | null;
   tuitionFee: number | null;
   currencyCode: string | null;
   /** Official application routes for this course (e.g. ["ucas", "institution_direct"]). */
   applicationRoutes: ApplicationRoute[];
+  /** Whether the course accepts international applicants (null when unknown). */
+  internationalApplicantsSupported: boolean | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -86,6 +94,17 @@ export const REQUIREMENT_KINDS = [
 
 export type RequirementKind = (typeof REQUIREMENT_KINDS)[number];
 
+export const REQUIREMENT_VERIFICATION_STATUSES = [
+  "unverified",
+  "machine_extracted",
+  "machine_validated",
+  "human_verified",
+  "superseded",
+  "rejected",
+] as const;
+
+export type RequirementVerificationStatus = (typeof REQUIREMENT_VERIFICATION_STATUSES)[number];
+
 /**
  * Effective-dated structured course requirement. Structured values coexist
  * with the original source text; nothing is blindly overwritten.
@@ -102,6 +121,7 @@ export interface CourseRequirement {
   observedAt: Date;
   publishedAt: Date;
   supersededById: string | null;
+  verificationStatus: RequirementVerificationStatus;
 }
 
 export interface Source {
@@ -112,6 +132,7 @@ export interface Source {
   extractorVersion: string | null;
   fetchPolicy: string | null;
   enabled: boolean;
+  lastVerifiedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

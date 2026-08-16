@@ -9,7 +9,8 @@
 | Milestone | Status | Branch | PR | Merge commit |
 | --- | --- | --- | --- | --- |
 | 1. Foundation hardening | ✅ merged | `chore/foundation-hardening` | #2 | `f159162` |
-| 2. UK admissions catalogue v1 | 🔄 in progress | `feat/uk-admissions-catalogue` | — | — |
+| 2. UK admissions catalogue v1 | ✅ merged | `feat/uk-admissions-catalogue` | #3 | see below |
+| 3. Real UK ingestion v1 | ⏳ next | — | — | — |
 | 3. Real UK ingestion v1 | — | — | — | — |
 | 4. Recommendation engine v1 | — | — | — | — |
 | 5. Application OS v1 | — | — | — | — |
@@ -94,8 +95,55 @@ and a seed catalogue with honest provenance labels.
 
 ---
 
-## Milestone 2 — UK admissions catalogue v1
+## Milestone 2 — UK admissions catalogue v1 (complete)
 
-*Not started.* (Plan: routes above; search/filter via Postgres `ILIKE` +
-indexed columns; provenance display "Source: … / Last checked: …"; seed data
-marked as development fixtures where fabricated.)
+**Branch:** `feat/uk-admissions-catalogue` — **PR:** #3.
+
+### What was delivered
+
+- **Catalogue browsing routes** (public): `/universities`,
+  `/universities/[institutionSlug]`,
+  `/universities/[institutionSlug]/courses/[courseSlug]`.
+- **PostgreSQL-backed search/filtering** — no Elasticsearch. A single SQL
+  RPC (`catalog_search_courses`) returns rows, total count and facet
+  aggregates in one round trip, using pg_trgm GIN indexes for
+  case-insensitive substring search (migration 0018).
+  Filters: free-text, institution, subject, study level, city, entry year
+  (open intakes), tuition range (+currency), international-applicant
+  support. Pagination is mandatory and page-based.
+- **Provenance display**: "Source: {official page} · Last checked: {date}"
+  for decision-critical facts (fees, deadlines, requirements). Fabricated
+  seed content is marked as a development fixture (sourceless + unverified)
+  and the UI shows an explicit fixture notice — never labelled as verified.
+- **Expanded seed catalogue**: 5 universities, 6 subjects, 10 courses
+  (undergraduate + postgraduate), 2 curated courses with verified official
+  requirements, deadlines and fee provenance; the rest explicitly fixtures.
+- **Contracts**: zod schemas for search params, facets and pagination
+  (empty query params coerced to "unset").
+
+### Migrations
+
+`0018_catalogue_search` — pg_trgm extension + trigram indexes, filterable
+column indexes, `international_applicants_supported`, `catalog_search_*` RPCs.
+
+### Verification
+
+`pnpm typecheck` ✅ · `pnpm lint` ✅ · `pnpm test` ✅ · `pnpm build` ✅ ·
+`pnpm db:test` ✅ (77, incl. new `supabase/tests/catalogue.test.ts`) ·
+`pnpm test:e2e` ✅ (3, incl. catalogue browsing spec).
+
+### Known limitations
+
+- Course detail renders effective requirements with no cycle scoping yet
+  (all "current"); cycle-scoped requirement evaluation is recommendation-
+  engine work (Milestone 4).
+- Search is title/name substring — no tokenized relevance ranking yet.
+- Facets are computed over the matched set per request; fine at this scale.
+- Institution/course pages are public; no "saved courses" yet (Milestone 4).
+
+### Next milestone
+
+**Real UK ingestion v1** — a deliberately limited ingestion pipeline (3–5
+official university sources) behind the source-registry → fetch → snapshot →
+extract → normalize → validate → diff → publish architecture, with content
+hashing, immutable snapshots, provenance and human-review states.

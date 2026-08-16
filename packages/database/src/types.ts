@@ -192,6 +192,7 @@ export type Tables = {
     tuition_fee: number | null;
     currency_code: string | null;
     application_routes: string[];
+    international_applicants_supported: boolean | null;
     created_at: string;
     updated_at: string;
   }>;
@@ -471,6 +472,32 @@ export type Database = {
         Args: {
           p_full_name: string;
           p_email: string | null;
+        };
+        Returns: Record<string, unknown>;
+      };
+      catalog_search_courses: {
+        Args: {
+          p_query?: string | null;
+          p_institution_slug?: string | null;
+          p_subject_slug?: string | null;
+          p_level?: string | null;
+          p_city?: string | null;
+          p_intake_year?: number | null;
+          p_tuition_min?: number | null;
+          p_tuition_max?: number | null;
+          p_tuition_currency?: string | null;
+          p_international?: boolean | null;
+          p_page?: number;
+          p_page_size?: number;
+        };
+        Returns: Record<string, unknown>;
+      };
+      catalog_search_institutions: {
+        Args: {
+          p_query?: string | null;
+          p_country_code?: string | null;
+          p_page?: number;
+          p_page_size?: number;
         };
         Returns: Record<string, unknown>;
       };

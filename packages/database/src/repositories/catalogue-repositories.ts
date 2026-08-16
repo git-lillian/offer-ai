@@ -22,6 +22,7 @@ export class InstitutionRepository {
     return {
       id: data.id,
       name: data.name,
+      slug: data.slug,
       countryCode: data.country_code,
       city: data.city,
       websiteUrl: data.website_url,
@@ -39,6 +40,7 @@ export class InstitutionRepository {
     return (data ?? []).map((row) => ({
       id: row.id,
       name: row.name,
+      slug: row.slug,
       countryCode: row.country_code,
       city: row.city,
       websiteUrl: row.website_url,
@@ -63,11 +65,13 @@ export class CourseRepository {
       institutionId: data.institution_id,
       subjectId: data.subject_id,
       title: data.title,
+      slug: data.slug,
       level: data.level as Course["level"],
       durationMonths: data.duration_months,
       tuitionFee: data.tuition_fee,
       currencyCode: data.currency_code,
       applicationRoutes: data.application_routes as Course["applicationRoutes"],
+      internationalApplicantsSupported: data.international_applicants_supported,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
     };
@@ -85,11 +89,13 @@ export class CourseRepository {
       institutionId: row.institution_id,
       subjectId: row.subject_id,
       title: row.title,
+      slug: row.slug,
       level: row.level as Course["level"],
       durationMonths: row.duration_months,
       tuitionFee: row.tuition_fee,
       currencyCode: row.currency_code,
       applicationRoutes: row.application_routes as Course["applicationRoutes"],
+      internationalApplicantsSupported: row.international_applicants_supported,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
     }));

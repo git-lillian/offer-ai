@@ -4,6 +4,7 @@ export * from "./client/server";
 export * from "./client/service";
 export * from "./repositories/student-profile-repository";
 export * from "./repositories/catalogue-repositories";
+export * from "./repositories/catalogue-query-repository";
 export * from "./repositories/application-case-repository";
 export * from "./repositories/platform-repositories";
 export * from "./repositories/ai-run-ledger";
