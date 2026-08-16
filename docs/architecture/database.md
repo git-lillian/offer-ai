@@ -66,13 +66,29 @@ Naming convention: `domain_table`, e.g. `student_profiles`,
 | --- | --- |
 | `catalog_subjects` | subject taxonomy (slug for URLs) |
 | `catalog_institutions` | universities/colleges (slug for URLs) |
-| `catalog_courses` | courses (level, duration, fees, application routes, slug, link to institution/subject) |
+| `catalog_courses` | courses (level, duration, fees, application routes, slug, international-applicant flag, link to institution/subject) |
 | `catalog_course_intakes` | intakes per course (cycle-scoped fees + deadline provenance) |
 | `catalog_application_cycles` | application cycles (2026/27, 2027/28, …) |
 | `catalog_course_requirements` | effective-dated structured requirements + source text + verification status |
 | `catalog_sources` | provenance of catalogue facts (official URL, owner, extractor version, last verified) |
 | `catalog_source_snapshots` | raw snapshots with content hash (immutable) |
 | `catalog_entity_identifiers` | polymorphic external identifiers (UCAS code, UKPRN, HESA, …) per institution/course/subject |
+
+## Catalogue search
+
+Search and filtering are PostgreSQL-backed (no Elasticsearch). Migration
+`0018_catalogue_search` adds:
+
+- `pg_trgm` GIN indexes for case-insensitive substring search on
+  institution/subject names and course titles.
+- Filterable-column indexes (level, subject, tuition+currency,
+  country+city, intake year) and `international_applicants_supported`.
+- `catalog_search_courses` / `catalog_search_institutions` RPCs that return
+  rows, total count and facet aggregates in one round trip. Filters compose
+  with AND; pagination is page-based and mandatory.
+
+The browse UI (`apps/web/src/app/universities/...`) calls these RPCs through
+`CatalogueQueryRepository` in `packages/database`.
 
 ### Admissions
 

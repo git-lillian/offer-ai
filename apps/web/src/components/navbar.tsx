@@ -13,6 +13,12 @@ export async function Navbar() {
         </Link>
 
         <div className="flex items-center gap-6">
+          <Link
+            href="/universities"
+            className="text-sm font-medium text-slate-600 hover:text-slate-900"
+          >
+            Universities
+          </Link>
           {user ? (
             <>
               <Link
