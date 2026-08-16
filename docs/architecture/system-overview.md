@@ -124,12 +124,16 @@ tests/             cross-cutting test utilities
 ## Data flow example: create application case
 
 1. Student submits the "new case" form in `apps/web`.
-2. Route handler authenticates the session, validates the payload with a
-   zod schema from `packages/contracts`.
+2. Route handler authenticates the session, resolves the authenticated
+   user's student profile (never trusting a browser-supplied student id),
+   and validates the payload with a zod schema from `packages/contracts`.
 3. Application service in `apps/web` calls `ApplicationCaseService.create(...)`
-   from `packages/domain`.
-4. The service persists via the `ApplicationCaseRepository` interface,
-   implemented in `packages/database` (RLS-protected).
+   from `packages/domain`, which validates the institution/course/intake/cycle
+   invariants and the open cycle.
+4. The database repository persists through the `create_application_case`
+   security-definer RPC, which inserts the case **and** its `created` event
+   in one transaction (RLS-checked inside the function). Transitions and
+   event appends use the matching RPCs.
 5. The route maps domain errors to HTTP responses and returns.
 6. A background job may be enqueued for follow-up work (e.g. document
    processing) — never awaited inline.

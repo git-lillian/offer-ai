@@ -2,7 +2,11 @@ packages:
   - "apps/*"
   - "packages/*"
 
-onlyBuiltDependencies:
-  - esbuild
-  - sharp
-  - unrs-resolver
+# pnpm 11 build-script allowlist. Packages listed here may run their
+# postinstall scripts (esbuild, sharp, unrs-resolver); everything else is
+# blocked by default. Setting these to `true` stops pnpm from rewriting this
+# file with placeholder values on every install.
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true

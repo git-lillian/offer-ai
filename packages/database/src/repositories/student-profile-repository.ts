@@ -11,9 +11,13 @@ type Db = SupabaseClient<Database>;
 
 function toProfile(row: Database["public"]["Tables"]["student_profiles"]["Row"]): StudentProfile {
   return {
+    id: row.id,
     userId: row.user_id,
     fullName: row.full_name,
     email: row.email,
+    accountStatus: row.account_status as StudentProfile["accountStatus"],
+    createdByUserId: row.created_by_user_id,
+    claimedAt: row.claimed_at ? new Date(row.claimed_at) : null,
     currentCountryCode: row.current_country_code,
     nationalityCountryCode: row.nationality_country_code,
     currentEducationLevel: row.current_education_level,
@@ -39,7 +43,20 @@ function toProfile(row: Database["public"]["Tables"]["student_profiles"]["Row"])
 export class StudentProfileRepository {
   constructor(private readonly db: Db) {}
 
-  async findById(userId: string): Promise<StudentProfile | null> {
+  /** Lookup by the canonical student profile id. */
+  async findById(id: string): Promise<StudentProfile | null> {
+    const { data } = await this.db
+      .from("student_profiles")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (!data) return null;
+    return toProfile(data);
+  }
+
+  /** Lookup by the linked auth account id (null when unclaimed). */
+  async findByUserId(userId: string): Promise<StudentProfile | null> {
     const { data } = await this.db
       .from("student_profiles")
       .select("*")
@@ -52,9 +69,13 @@ export class StudentProfileRepository {
 
   async createOrUpdate(profile: StudentProfile): Promise<StudentProfile> {
     const row = {
+      id: profile.id,
       user_id: profile.userId,
       full_name: profile.fullName,
       email: profile.email,
+      account_status: profile.accountStatus,
+      created_by_user_id: profile.createdByUserId,
+      claimed_at: profile.claimedAt?.toISOString() ?? null,
       current_country_code: profile.currentCountryCode,
       nationality_country_code: profile.nationalityCountryCode,
       current_education_level: profile.currentEducationLevel,
@@ -72,12 +93,31 @@ export class StudentProfileRepository {
 
     const { data, error } = await this.db
       .from("student_profiles")
-      .upsert(row, { onConflict: "user_id" })
+      .upsert(row, { onConflict: "id" })
       .select("*")
       .single();
 
     if (error) throw error;
     return toProfile(data);
+  }
+
+  /** Links an unclaimed student profile to the current auth account (atomic RPC). */
+  async claim(profileId: string): Promise<StudentProfile | null> {
+    const { data, error } = await this.db.rpc("claim_student_profile", {
+      p_student_id: profileId,
+    });
+    if (error) throw error;
+    return data ? toProfile(data as Database["public"]["Tables"]["student_profiles"]["Row"]) : null;
+  }
+
+  /** Creates an unclaimed prospect (adviser/guardian only; role-checked RPC). */
+  async createProspect(fullName: string, email: string | null): Promise<StudentProfile | null> {
+    const { data, error } = await this.db.rpc("create_prospect", {
+      p_full_name: fullName,
+      p_email: email,
+    });
+    if (error) throw error;
+    return data ? toProfile(data as Database["public"]["Tables"]["student_profiles"]["Row"]) : null;
   }
 
   async addEducation(education: StudentEducation): Promise<StudentEducation> {
@@ -118,6 +158,7 @@ export class StudentProfileRepository {
         grade: q.grade,
         predicted_grade: q.predictedGrade,
         overall_gpa: q.overallGpa,
+        gpa_scale_max: q.gpaScaleMax,
         completed_year: q.completedYear,
       })
       .select("*")
@@ -127,13 +168,14 @@ export class StudentProfileRepository {
     return {
       id: data.id,
       studentId: data.student_id,
-      qualificationSystem: data.qualification_system as StudentQualification["qualificationSystem"],
+      qualificationSystem: data.qualification_system,
       title: data.title,
       institutionName: data.institution_name,
       countryCode: data.country_code,
       grade: data.grade,
       predictedGrade: data.predicted_grade,
       overallGpa: data.overall_gpa,
+      gpaScaleMax: data.gpa_scale_max,
       completedYear: data.completed_year,
     };
   }
@@ -190,13 +232,14 @@ export class StudentProfileRepository {
     return (data ?? []).map((row) => ({
       id: row.id,
       studentId: row.student_id,
-      qualificationSystem: row.qualification_system as StudentQualification["qualificationSystem"],
+      qualificationSystem: row.qualification_system,
       title: row.title,
       institutionName: row.institution_name,
       countryCode: row.country_code,
       grade: row.grade,
       predictedGrade: row.predicted_grade,
       overallGpa: row.overall_gpa,
+      gpaScaleMax: row.gpa_scale_max,
       completedYear: row.completed_year,
     }));
   }

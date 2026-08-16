@@ -64,10 +64,23 @@ model and the controls in place (or planned) for each area.
 
 - Roles: `identity_user_roles` (many-to-many). Helper `hasRole(userId, role)`
   in server code. The product is never modelled around a single `role` field.
-- Student data access: RLS `auth.uid()` policies + `has_student_access()`
-  SECURITY DEFINER function for grants.
-- Adviser/guardian access requires an explicit `access_grant` with scope and
-  expiry; revocation removes access immediately.
+- **Student identity is decoupled from auth accounts.** `student_profiles.id`
+  is the canonical student id; `user_id` is the nullable link to the claimed
+  auth account. An adviser/guardian can create an unclaimed prospect; the
+  student later claims it (signup trigger email-match, or the
+  `claim_student_profile` RPC). Server code always derives the student id from
+  the authenticated session's profile, never from the browser.
+- **Scoped grants.** `access_grants` carry `scope` + optional `scope_id`.
+  RLS policies on each resource table check only the matching scope:
+  a document grant exposes exactly that document; a case grant exactly that
+  case; a profile grant the Student 360. Purchasing a service never implies
+  full Student 360 access.
+- **Controlled writes.** Application cases, status transitions, event appends,
+  prospect creation and claiming all flow through security-definer RPCs that
+  re-check authorization inside the transaction and enforce invariants
+  atomically. Client policies on those tables are read-only by design.
+- Adviser/guardian access requires an explicit `access_grant`; revocation
+  removes access immediately.
 - Administrative mutations only through protected server paths (route
   handlers / server actions) with role checks — never from the client.
 
@@ -121,12 +134,19 @@ Recorded: `actor_id`, `action`, `resource_type`, `resource_id`,
 ## Testing the security boundary
 
 `supabase/tests/` contains automated RLS tests that exercise the policies
-with real users:
+with real users (`pnpm db:test`):
 
-- student A cannot read student B's profile/cases/documents
-- student cannot insert rows with another user's id
-- anon cannot read any student table
-- adviser with grant can read the granted case only
-- revoked grant removes access immediately
+- student identity separation: profile id ≠ auth id; prospect creation by
+  advisers only; claiming via RPC and via signup email-match; double-claim
+  rejected
+- application cases are RPC-only: direct client inserts blocked; atomic
+  create (case + event); atomic transitions; invalid transitions and
+  invariant violations rejected by the database
+- scoped access: a case grant exposes exactly the granted case; a document
+  grant exposes exactly the document (never the profile/cases); an artifact
+  grant exposes exactly the artifact; a profile grant exposes the Student 360
+  child data; revocation removes access immediately
+- anon cannot read any student table; service role can read internal tables
+- catalogue data is public read
 
-Run with `pnpm db:test`.
+These run in CI against a fresh local Supabase stack (`supabase start`).

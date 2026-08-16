@@ -82,15 +82,20 @@ long-running work is enqueued as durable Postgres-backed jobs consumed by
 - [AI](docs/architecture/ai.md)
 - [Background jobs](docs/architecture/background-jobs.md)
 - [Domain map](docs/product/domain-map.md)
+- [Implementation roadmap](docs/product/implementation-roadmap.md)
 - [ADR index](docs/adr/)
 - [Prototype migration plan](docs/architecture/prototype-migration.md)
 
 ## Status
 
-Implemented: authentication (Supabase), Student 360 onboarding, dashboard,
-application-case creation with append-only event history, RLS on all student
+Implemented: authentication (Supabase), Student 360 as an independent domain
+entity (adviser-created prospects, claiming, scoped access grants), onboarding,
+application-case creation with append-only event history and atomic
+DB-enforced transitions, hardened admissions catalogue, RLS on all student
 data, AI provider abstraction with run ledger, Postgres-backed background
-worker with one demo job, 50+ automated tests, CI, and documentation.
+worker with one demo job, 60+ automated tests incl. RLS integration suite, CI
+with fresh-Supabase integration + e2e jobs, and documentation.
 
-Planned next (see the final report): admissions catalogue + recommendation
-engine v1, document studio, marketplace.
+Planned next (see the roadmap): admissions catalogue browsing + real UK
+ingestion, recommendation engine v1, application OS, document studio,
+marketplace. See [`docs/product/implementation-roadmap.md`](docs/product/implementation-roadmap.md).

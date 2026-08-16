@@ -3,6 +3,12 @@
  *
  * These services orchestrate repositories and apply domain rules. They are
  * framework-free and therefore usable from the web app and the worker.
+ *
+ * Persistence is atomic: the database repository creates the case and its
+ * `created` event in one transaction (and transitions status + event in one
+ * transaction) through security-definer RPCs. The domain layer validates
+ * inputs and the state machine up front so callers receive typed errors;
+ * the database re-enforces the same invariants inside the transaction.
  */
 
 import { NotFoundError, ValidationError, ConflictError } from "./errors";
@@ -44,6 +50,9 @@ export class ApplicationCaseService {
     if (!intake) throw new NotFoundError("Course intake not found.");
     if (!cycle) throw new NotFoundError("Application cycle not found.");
 
+    if (course.institutionId !== institution.id) {
+      throw new ConflictError("The course does not belong to the chosen institution.");
+    }
     if (intake.courseId !== course.id) {
       throw new ConflictError("The intake does not belong to the chosen course.");
     }
@@ -54,37 +63,18 @@ export class ApplicationCaseService {
       throw new ConflictError("The application cycle is closed.");
     }
 
-    const now = new Date();
-    const caseRecord: ApplicationCase = {
-      id: crypto.randomUUID(),
+    const applicationRoute =
+      input.applicationRoute ?? (course.applicationRoutes?.includes("ucas") ? "ucas" : "institution_direct");
+
+    return this.deps.applicationCaseRepository.create({
       studentId,
       institutionId,
       courseId,
       courseIntakeId,
       applicationCycleId,
-      applicationRoute: "institution_direct",
-      currentStatus: "draft",
-      submittedAt: null,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    const createdEvent: ApplicationEvent = {
-      id: crypto.randomUUID(),
-      caseId: caseRecord.id,
-      eventType: "created",
-      status: "draft",
-      actorUserId: studentId,
-      message: "Application case created.",
-      metadata: null,
-      occurredAt: now,
-    };
-
-    const saved = await this.deps.applicationCaseRepository.create(caseRecord);
-    const savedEvent = await this.deps.applicationCaseRepository.appendEvent(
-      createdEvent,
-    );
-    return { caseRecord: saved, createdEvent: savedEvent };
+      applicationRoute,
+      actorUserId: input.actorUserId,
+    });
   }
 
   async listEvents(caseId: string): Promise<ApplicationEvent[]> {
@@ -106,17 +96,22 @@ export class ApplicationCaseTransitionService {
     to: ApplicationCaseStatus,
     actorUserId: string,
     message?: string,
-  ): Promise<ApplicationEvent> {
+  ): Promise<{ caseRecord: ApplicationCase; event: ApplicationEvent }> {
     const existing = await this.applicationCaseRepository.findById(caseId);
     if (!existing) {
       throw new NotFoundError("Application case not found.");
     }
 
     const event = transitionCaseStatus(existing.currentStatus, to, actorUserId, message);
-    event.caseId = caseId;
 
-    await this.applicationCaseRepository.updateStatus(caseId, to);
-    return this.applicationCaseRepository.appendEvent(event);
+    return this.applicationCaseRepository.transition({
+      caseId,
+      toStatus: to,
+      actorUserId,
+      eventType: event.eventType,
+      message: event.message,
+      metadata: event.metadata,
+    });
   }
 }
 
@@ -126,4 +121,5 @@ export function validateCaseCreationInput(input: ApplicationCaseCreationInput): 
   if (!input.courseId) throw new ValidationError("Course is required.");
   if (!input.courseIntakeId) throw new ValidationError("Intake is required.");
   if (!input.applicationCycleId) throw new ValidationError("Application cycle is required.");
+  if (!input.actorUserId) throw new ValidationError("Actor is required.");
 }

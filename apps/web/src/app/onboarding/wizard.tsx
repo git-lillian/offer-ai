@@ -50,9 +50,13 @@ export function OnboardingWizard({ initialProfile }: { initialProfile: StudentPr
   const router = useRouter();
 
   const defaultProfile: SP = {
-    userId: "",
+    id: "",
+    userId: null,
     fullName: "",
-    email: "",
+    email: null,
+    accountStatus: "unclaimed",
+    createdByUserId: null,
+    claimedAt: null,
     currentCountryCode: null,
     nationalityCountryCode: null,
     currentEducationLevel: null,

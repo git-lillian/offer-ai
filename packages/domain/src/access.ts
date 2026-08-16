@@ -10,6 +10,7 @@ export const ACCESS_GRANT_SCOPES = [
   "profile",
   "case",
   "document",
+  "artifact",
   "service",
 ] as const;
 

@@ -6,6 +6,7 @@ import {
   CourseIntakeRepository,
   CourseRepository,
   InstitutionRepository,
+  StudentProfileRepository,
 } from "@offer-ai/database";
 import { requireUser } from "@/lib/auth";
 import { getServerClient } from "@/lib/supabase/server";
@@ -37,8 +38,10 @@ export default async function CaseDetailPage({
     notFound();
   }
 
-  // RLS prevents other students from reading this case; double-check.
-  if (applicationCase.studentId !== user.id) {
+  // RLS prevents other students from reading this case; double-check that
+  // the case belongs to the authenticated user's student profile.
+  const profile = await new StudentProfileRepository(supabase).findByUserId(user.id);
+  if (applicationCase.studentId !== (profile?.id ?? "")) {
     notFound();
   }
 

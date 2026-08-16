@@ -24,9 +24,13 @@ export function profileToInitial(
   profile: StudentProfile | null,
 ): StudentProfile {
   return profile ?? {
-    userId: "",
+    id: "",
+    userId: null,
     fullName: "",
-    email: "",
+    email: null,
+    accountStatus: "unclaimed",
+    createdByUserId: null,
+    claimedAt: null,
     currentCountryCode: null,
     nationalityCountryCode: null,
     currentEducationLevel: null,

@@ -27,8 +27,15 @@ import type { StudentDocument } from "./document";
 import type { Artifact, ArtifactVersion } from "./artifact";
 
 export interface StudentProfileRepository {
-  findById(userId: string): Promise<StudentProfile | null>;
+  /** Lookup by the canonical student profile id. */
+  findById(id: string): Promise<StudentProfile | null>;
+  /** Lookup by the linked auth account id. */
+  findByUserId(userId: string): Promise<StudentProfile | null>;
   createOrUpdate(profile: StudentProfile): Promise<StudentProfile>;
+  /** Links an unclaimed profile to the current auth account (atomic RPC). */
+  claim(profileId: string): Promise<StudentProfile | null>;
+  /** Creates an unclaimed prospect (adviser/guardian only; role-checked RPC). */
+  createProspect(fullName: string, email: string | null): Promise<StudentProfile | null>;
   addEducation(education: StudentEducation): Promise<StudentEducation>;
   addQualification(qualification: StudentQualification): Promise<StudentQualification>;
   addExperience(experience: StudentExperience): Promise<StudentExperience>;
@@ -60,12 +67,34 @@ export interface ApplicationCycleRepository {
 export interface ApplicationCaseRepository {
   findById(id: string): Promise<ApplicationCase | null>;
   listByStudent(studentId: string): Promise<ApplicationCase[]>;
-  create(caseRecord: ApplicationCase): Promise<ApplicationCase>;
-  updateStatus(
-    id: string,
-    status: ApplicationCase["currentStatus"],
-  ): Promise<ApplicationCase>;
-  appendEvent(event: ApplicationEvent): Promise<ApplicationEvent>;
+  /** Atomically creates the case and its `created` event. */
+  create(input: {
+    studentId: string;
+    institutionId: string;
+    courseId: string;
+    courseIntakeId: string;
+    applicationCycleId: string;
+    applicationRoute: ApplicationCase["applicationRoute"];
+    actorUserId: string;
+  }): Promise<{ caseRecord: ApplicationCase; createdEvent: ApplicationEvent }>;
+  /** Atomically transitions status and appends the status event. */
+  transition(input: {
+    caseId: string;
+    toStatus: ApplicationCase["currentStatus"];
+    actorUserId: string;
+    eventType: ApplicationEventType;
+    message?: string;
+    metadata?: Record<string, unknown> | null;
+  }): Promise<{ caseRecord: ApplicationCase; event: ApplicationEvent }>;
+  /** Appends a non-status event (notes, documents) through a controlled RPC. */
+  appendEvent(input: {
+    caseId: string;
+    eventType: ApplicationEventType;
+    status: ApplicationCase["currentStatus"];
+    actorUserId: string;
+    message: string;
+    metadata?: Record<string, unknown> | null;
+  }): Promise<ApplicationEvent>;
   listEvents(caseId: string): Promise<ApplicationEvent[]>;
 }
 
@@ -125,6 +154,10 @@ export interface ApplicationCaseCreationInput {
   courseId: string;
   courseIntakeId: string;
   applicationCycleId: string;
+  /** Optional explicit route; defaults to the course's preferred route. */
+  applicationRoute?: ApplicationCase["applicationRoute"];
+  /** Authenticated actor (derived from the session server-side, never the browser). */
+  actorUserId: string;
 }
 
 export type { ApplicationEvent, ApplicationEventType };

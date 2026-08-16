@@ -67,6 +67,7 @@ export class CourseRepository {
       durationMonths: data.duration_months,
       tuitionFee: data.tuition_fee,
       currencyCode: data.currency_code,
+      applicationRoutes: data.application_routes as Course["applicationRoutes"],
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
     };
@@ -88,6 +89,7 @@ export class CourseRepository {
       durationMonths: row.duration_months,
       tuitionFee: row.tuition_fee,
       currencyCode: row.currency_code,
+      applicationRoutes: row.application_routes as Course["applicationRoutes"],
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
     }));
@@ -113,6 +115,8 @@ export class CourseIntakeRepository {
       applicationDeadline: data.application_deadline
         ? new Date(data.application_deadline)
         : null,
+      tuitionFee: data.tuition_fee,
+      feeCurrencyCode: data.fee_currency_code,
       closed: data.closed,
     };
   }
@@ -133,6 +137,8 @@ export class CourseIntakeRepository {
       applicationDeadline: row.application_deadline
         ? new Date(row.application_deadline)
         : null,
+      tuitionFee: row.tuition_fee,
+      feeCurrencyCode: row.fee_currency_code,
       closed: row.closed,
     }));
   }

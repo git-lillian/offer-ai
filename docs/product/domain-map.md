@@ -9,12 +9,12 @@ codebase, and which parts are implemented in the foundation vs. future work.
 | --- | --- | --- | --- |
 | Identity | authentication, account, user roles, preferences, locale, timezone, account state | `packages/domain` (types), Supabase Auth, `apps/web` auth helpers | Implemented (auth flow, roles) |
 | Organisations | agencies, solo consultants, schools, opportunity providers, memberships | `packages/domain` (types), database tables | Tables + types; no UI |
-| Student 360 | canonical student profile, academic history, qualifications, experiences, goals | `packages/domain`, database `students` schema | Implemented (foundation columns) |
+| Student 360 | canonical student entity (independent of auth), profile, academic history, qualifications, experiences, goals, claiming | `packages/domain`, database `students` schema | Implemented (independent entity, prospect creation + claiming, scoped grants, international qualifications) |
 | Evidence | first-class EvidenceItem for every student claim, provenance, verification state | `packages/domain`, database `evidence` tables | Tables + types |
 | Documents | private file storage, uploads, processing status, extraction | Supabase Storage (private bucket), `packages/domain` | Bucket + policies + types; no upload UI yet |
-| Admissions catalogue | institutions, courses, intakes, cycles, requirements, effective dating, provenance | `packages/admissions-engine` (future), database `catalog` schema | Tables + seed data; no ingestion |
+| Admissions catalogue | institutions, courses, intakes, cycles, requirements, effective dating, provenance, identifiers | `packages/admissions-engine` (future), database `catalog` schema | Tables hardened (slugs, identifiers, cycle-scoped fees, verification status); seed data; no ingestion |
 | Admissions engine | eligibility, recommendations, strategy | `packages/admissions-engine` | Interfaces + UK adapter skeleton; rules v1 minimal |
-| Application cases | case lifecycle, events, tasks, documents, decisions, offers | `packages/domain`, database `admissions` schema | Implemented (create case, status, events, tasks) |
+| Application cases | case lifecycle, events, tasks, documents, decisions, offers | `packages/domain`, database `admissions` schema | Implemented (atomic create/transition RPCs, append-only events, UCAS route) |
 | Artifacts | CV, personal statement, SOP, supplementary answers — generic versioned model | `packages/domain`, database `artifacts` schema | Tables + types; generation in future |
 | AI | provider abstraction, model routing, prompts, usage ledger | `packages/ai` | Implemented (provider, DeepSeek adapter, ledger table) |
 | Marketplace | provider profiles, services, bookings, orders, reviews, commissions | `packages/domain` (types), database | Types only |
@@ -46,21 +46,29 @@ AI SDKs, or any HTTP framework.
 
 ### Student 360
 
-- `StudentProfile` (root profile, independent of any application)
-- `StudentEducation`, `StudentQualification`, `StudentExperience`
+- `StudentProfile` (root profile; canonical `id` independent of any
+  application or auth account; `unclaimed → claimed → closed` lifecycle;
+  `created_by_user_id` for adviser/guardian-created prospects)
+- `StudentEducation`, `StudentQualification` (with explicit GPA scale),
+  `StudentExperience`
+- `QualificationSystem` (extensible national-systems lookup)
 - `EvidenceItem` (provenance: source_type, verification_status, verified_by/at)
 - `Document` (owner, storage path, checksum, processing status, version)
+- `AccessGrant` (scope: profile/case/document/artifact/service + resource id)
 
 ### Admissions catalogue
 
-- `Institution`, `Course`, `CourseIntake`, `ApplicationCycle`
-- `CourseRequirement` (effective-dated, structured values + source text)
+- `Institution`, `Course` (slugs, application routes), `CourseIntake`
+  (cycle-scoped fees, deadline provenance), `ApplicationCycle`
+- `CourseRequirement` (effective-dated, structured values + source text,
+  verification status)
 - `Source` / `SourceSnapshot` (provenance of every catalogue fact)
+- `CatalogEntityIdentifier` (UCAS codes, UKPRN, HESA identifiers)
 
 ### Application case
 
-- `ApplicationCase` (student, course, intake, cycle, route, status)
-- `ApplicationEvent` (append-only status/event history; current status derived)
+- `ApplicationCase` (student, course, intake, cycle, route `ucas | institution_direct | agent_portal | other`, status)
+- `ApplicationEvent` (append-only status/event history; writes only through controlled RPCs)
 - `ApplicationTask` (first-class, with source, assignee, due date, status)
 - `ApplicationDocument`, `AccessGrant`, `Consent`
 

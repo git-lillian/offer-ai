@@ -187,3 +187,29 @@ recommend the catalogue + recommendation slice first, because eligibility
 guidance is the product's core differentiator and it validates the
 effective-dating and provenance model before user-generated content
 depends on it.
+
+---
+
+## Appendix (2026-08-16) — Foundation hardening
+
+Milestone 1 of the implementation programme (see
+`docs/product/implementation-roadmap.md`) hardened the foundation:
+
+- Student is now an independent domain entity (canonical `id`, nullable
+  auth link, `unclaimed → claimed → closed` lifecycle, adviser-created
+  prospects, claiming RPCs) — migrations 0011 + 0016.
+- Access grants are scoped per resource (case/document/artifact/profile);
+  a document grant no longer exposes the Student 360 — migration 0012.
+- Application-case writes are atomic security-definer RPCs with the status
+  machine and institution/course/intake/cycle invariants enforced inside one
+  transaction — migration 0013.
+- `ucs` → `ucas`; UK-centric assumptions removed; qualification systems
+  became a lookup; catalogue hardened (slugs, identifiers, cycle-scoped
+  fees, verification status, source freshness) — migrations 0014 + 0015.
+- Schema grants are re-applied idempotently for restored databases —
+  migration 0017.
+- CI now starts a fresh Supabase stack and runs `pnpm db:test` and the
+  Playwright e2e suite.
+
+Full findings and fixes: `docs/architecture/current-state-audit.md` §13.
+Test counts at this point: 36 unit + 67 RLS/integration + 2 e2e, all green.
