@@ -6,6 +6,10 @@
 import type { DemoEchoJobPayload } from "@offer-ai/contracts";
 import { demoEchoJobPayloadSchema } from "@offer-ai/contracts";
 import type { Logger } from "@offer-ai/config";
+import { catalogIngestHandler, catalogScheduleAllHandler } from "./catalog-jobs";
+import { generateArtifactHandler } from "./artifact-jobs";
+import { explainEligibilityHandler } from "./adviser-jobs";
+import { notificationSendHandler, deadlineCheckHandler } from "./notification-jobs";
 
 export interface JobContext {
   logger: Logger;
@@ -35,7 +39,15 @@ export const demoEchoHandler: JobHandler = {
 
 const registry = new Map<string, JobHandler>();
 
-for (const handler of [demoEchoHandler]) {
+for (const handler of [
+  demoEchoHandler,
+  catalogIngestHandler,
+  catalogScheduleAllHandler,
+  generateArtifactHandler,
+  explainEligibilityHandler,
+  notificationSendHandler,
+  deadlineCheckHandler,
+]) {
   registry.set(handler.kind, handler);
 }
 

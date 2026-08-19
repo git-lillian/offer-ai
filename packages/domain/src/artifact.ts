@@ -68,3 +68,16 @@ export function isArtifactType(value: string): value is ArtifactType {
 export function isArtifactOrigin(value: string): value is ArtifactOrigin {
   return (ARTIFACT_ORIGINS as readonly string[]).includes(value);
 }
+
+export function isArtifactApprovalState(value: string): value is ArtifactApprovalState {
+  return (ARTIFACT_APPROVAL_STATES as readonly string[]).includes(value);
+}
+
+export interface ArtifactComment {
+  id: string;
+  artifactId: string;
+  versionNumber: number;
+  authorUserId: string;
+  body: string;
+  createdAt: Date;
+}
