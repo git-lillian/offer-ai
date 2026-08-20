@@ -20,21 +20,6 @@
 --      and service_role (bypass). No anon policies. Service_role has full access.
 -- Indexes: FK, stripe ids, status, feature, processed, created_at.
 
--- ── Helper: is the caller the owner of this billing customer? ─────────────────
-create or replace function public.is_billing_owner(p_customer_id uuid)
-returns boolean
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select exists (
-    select 1 from public.billing_customers bc
-    where bc.id = p_customer_id
-      and bc.user_id = auth.uid()
-  );
-$$;
-
 -- ── 1) Billing customers ───────────────────────────────────────────────────────
 create table if not exists public.billing_customers (
   id uuid primary key default gen_random_uuid(),
@@ -65,6 +50,21 @@ create policy billing_customers_select_own
 
 -- No insert/update/delete policies for authenticated — service_role only.
 -- Stripe customer creation is server-side; browser never writes directly.
+
+-- ── Helper: is the caller the owner of this billing customer? (after table exists)
+create or replace function public.is_billing_owner(p_customer_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.billing_customers bc
+    where bc.id = p_customer_id
+      and bc.user_id = auth.uid()
+  );
+$$;
 
 -- ── 2) Billing subscriptions ─────────────────────────────────────────────────
 create table if not exists public.billing_subscriptions (
