@@ -12,9 +12,11 @@
   },
   "dependencies": {
     "@offer-ai/ai": "workspace:*",
+    "@offer-ai/billing": "workspace:*",
     "@offer-ai/config": "workspace:*",
     "@offer-ai/contracts": "workspace:*",
     "@offer-ai/domain": "workspace:*",
+    "@offer-ai/notifications": "workspace:*",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.5"
   },

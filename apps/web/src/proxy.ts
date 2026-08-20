@@ -5,9 +5,10 @@ import { createServerClient } from "@supabase/ssr";
  * Request proxy (formerly middleware): refreshes the Supabase session and
  * protects private routes.
  *
- * Private areas: /dashboard, /onboarding, /cases. Guests are redirected to
- * /login; the onboarding page additionally redirects to /dashboard once
- * complete (checked in the page itself).
+ * Private areas: /dashboard, /onboarding, /cases, /recommendations, /saved, /artifacts, /experiences, /billing.
+ * Guests are redirected to /login; the onboarding page additionally redirects
+ * to /dashboard once complete (checked in the page itself).
+ * Opportunities (/opportunities) is public like the catalogue.
  */
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -41,7 +42,14 @@ export async function proxy(request: NextRequest) {
     const isPrivate =
       pathname.startsWith("/dashboard") ||
       pathname.startsWith("/onboarding") ||
-      pathname.startsWith("/cases");
+      pathname.startsWith("/cases") ||
+      pathname.startsWith("/recommendations") ||
+      pathname.startsWith("/saved") ||
+      pathname.startsWith("/artifacts") ||
+      pathname.startsWith("/adviser") ||
+      pathname.startsWith("/experiences") ||
+      pathname.startsWith("/billing") ||
+      pathname.startsWith("/notifications");
 
     if (isPrivate && !user) {
       const url = request.nextUrl.clone();
@@ -68,6 +76,20 @@ export const config = {
     "/onboarding",
     "/onboarding/:path*",
     "/cases/:path*",
+    "/recommendations/:path*",
+    "/recommendations",
+    "/saved/:path*",
+    "/saved",
+    "/artifacts/:path*",
+    "/artifacts",
+    "/adviser/:path*",
+    "/adviser",
+    "/experiences/:path*",
+    "/experiences",
+    "/billing/:path*",
+    "/billing",
+    "/notifications/:path*",
+    "/notifications",
     "/login",
     "/register",
   ],

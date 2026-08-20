@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@offer-ai/admissions-engine": "workspace:*",
     "@offer-ai/config": "workspace:*",
     "@offer-ai/contracts": "workspace:*",
     "@offer-ai/domain": "workspace:*",

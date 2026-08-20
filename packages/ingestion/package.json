@@ -11,7 +11,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@offer-ai/database": "workspace:*",
     "@offer-ai/domain": "workspace:*",
+    "@supabase/supabase-js": "^2.110.5",
     "zod": "^3.25.0"
   },
   "devDependencies": {

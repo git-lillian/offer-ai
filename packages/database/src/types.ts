@@ -267,6 +267,72 @@ export type Tables = {
     status: string;
   }>;
 
+  catalog_source_courses: Table<{
+    source_id: string;
+    course_id: string;
+    created_at: string;
+  }>;
+
+  catalog_ingestion_runs: Table<{
+    id: string;
+    source_id: string;
+    snapshot_id: string | null;
+    status: string;
+    content_hash: string | null;
+    extracted_count: number;
+    published_count: number;
+    error: string | null;
+    started_at: string;
+    completed_at: string | null;
+    created_at: string;
+  }>;
+
+  student_saved_courses: Table<{
+    id: string;
+    student_id: string;
+    course_id: string;
+    created_at: string;
+  }>;
+
+  recommendation_runs: Table<{
+    id: string;
+    student_id: string;
+    course_id: string;
+    eligibility: string;
+    strategy_band: string;
+    score: number;
+    confidence: number;
+    reasons: Json;
+    blockers: Json;
+    missing_information: Json;
+    profile_version: string;
+    catalogue_version: string;
+    rule_version: string;
+    created_at: string;
+  }>;
+
+  opportunities: Table<{
+    id: string;
+    title: string;
+    provider_name: string;
+    opportunity_type: string;
+    location_country_code: string | null;
+    is_remote: boolean;
+    duration_months: number | null;
+    description: string;
+    url: string | null;
+    created_at: string;
+  }>;
+
+  student_opportunities: Table<{
+    id: string;
+    student_id: string;
+    opportunity_id: string;
+    status: string;
+    applied_at: string | null;
+    created_at: string;
+  }>;
+
   application_cases: Table<{
     id: string;
     student_id: string;
@@ -315,6 +381,17 @@ export type Tables = {
     added_at: string;
   }>;
 
+  application_milestones: Table<{
+    id: string;
+    case_id: string;
+    title: string;
+    due_at: string | null;
+    status: string;
+    sort_order: number;
+    created_at: string;
+    updated_at: string;
+  }>;
+
   artifacts: Table<{
     id: string;
     student_id: string;
@@ -338,6 +415,15 @@ export type Tables = {
     model_run_id: string | null;
     evidence_used: string[];
     approval_state: string;
+    created_at: string;
+  }>;
+
+  artifact_comments: Table<{
+    id: string;
+    artifact_id: string;
+    version_number: number;
+    author_user_id: string;
+    body: string;
     created_at: string;
   }>;
 
@@ -409,6 +495,153 @@ export type Tables = {
     available_at: string;
     started_at: string | null;
     completed_at: string | null;
+    created_at: string;
+  }>;
+
+  provider_profiles: Table<{
+    id: string;
+    user_id: string;
+    display_name: string;
+    bio: string;
+    verification_status: string;
+    specialisms: string[];
+    country_scope: string[];
+    language_scope: string[];
+    created_at: string;
+    updated_at: string;
+  }>;
+
+  service_listings: Table<{
+    id: string;
+    provider_id: string;
+    title: string;
+    description: string;
+    service_type: string;
+    price: number;
+    currency_code: string;
+    turnaround_days: number;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+  }>;
+
+  bookings: Table<{
+    id: string;
+    student_id: string;
+    service_listing_id: string;
+    provider_id: string;
+    status: string;
+    scheduled_at: string | null;
+    created_at: string;
+    updated_at: string;
+  }>;
+
+  service_orders: Table<{
+    id: string;
+    booking_id: string;
+    student_id: string;
+    provider_id: string;
+    amount: number;
+    platform_fee: number;
+    total: number;
+    currency_code: string;
+    status: string;
+    created_at: string;
+    updated_at: string;
+  }>;
+
+  service_reviews: Table<{
+    id: string;
+    order_id: string;
+    student_id: string;
+    provider_id: string;
+    rating: number;
+    comment: string;
+    created_at: string;
+  }>;
+
+  marketplace_commissions: Table<{
+    id: string;
+    order_id: string;
+    provider_id: string;
+    amount: number;
+    rate: number;
+    currency_code: string;
+    created_at: string;
+  }>;
+
+  billing_customers: Table<{
+    id: string;
+    user_id: string;
+    stripe_customer_id: string | null;
+    created_at: string;
+  }>;
+
+  billing_subscriptions: Table<{
+    id: string;
+    customer_id: string;
+    stripe_subscription_id: string | null;
+    plan_code: string;
+    status: string;
+    current_period_end: string | null;
+    created_at: string;
+  }>;
+
+  billing_entitlements: Table<{
+    id: string;
+    customer_id: string;
+    feature_code: string;
+    granted_at: string;
+    expires_at: string | null;
+  }>;
+
+  billing_invoices: Table<{
+    id: string;
+    customer_id: string;
+    stripe_invoice_id: string | null;
+    amount_due: number;
+    currency_code: string;
+    status: string;
+    created_at: string;
+  }>;
+
+  billing_webhook_events: Table<{
+    id: string;
+    stripe_event_id: string;
+    type: string;
+    payload: Json;
+    processed: boolean;
+    created_at: string;
+  }>;
+
+  notifications: Table<{
+    id: string;
+    user_id: string;
+    channel: string;
+    notification_type: string;
+    title: string;
+    body: string;
+    payload: Json;
+    status: string;
+    scheduled_at: string;
+    sent_at: string | null;
+    created_at: string;
+  }>;
+
+  notification_preferences: Table<{
+    user_id: string;
+    email_enabled: boolean;
+    push_enabled: boolean;
+    deadline_reminder_days: number[];
+    created_at: string;
+  }>;
+
+  deadline_watches: Table<{
+    id: string;
+    student_id: string;
+    course_intake_id: string;
+    watch_type: string;
+    next_reminder_at: string | null;
     created_at: string;
   }>;
 };
@@ -500,6 +733,18 @@ export type Database = {
           p_page_size?: number;
         };
         Returns: Record<string, unknown>;
+      };
+      is_provider_owner: {
+        Args: {
+          p_provider_id: string;
+        };
+        Returns: boolean;
+      };
+      is_billing_owner: {
+        Args: {
+          p_customer_id: string;
+        };
+        Returns: boolean;
       };
     };
     Enums: Record<string, never>;
