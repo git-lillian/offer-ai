@@ -47,15 +47,10 @@ alter table public.catalog_ingestion_runs enable row level security;
 -- No policy for anon/authenticated → service-role only (purposely).
 
 -- ── 3) Seed the v1 source↔course links ────────────────────────────────────
--- Official sources linked to their curated courses so ingestion can publish.
-insert into public.catalog_source_courses (source_id, course_id)
-values
-  ('15000000-0000-0000-0000-000000000001', '12000000-0000-0000-0000-000000000001'),
-  ('15000000-0000-0000-0000-000000000002', '12000000-0000-0000-0000-000000000002'),
-  ('15000000-0000-0000-0000-000000000003', '12000000-0000-0000-0000-000000000003'),
-  ('35000000-0000-0000-0000-000000000001', '32000000-0000-0000-0000-000000000001'),
-  ('35000000-0000-0000-0000-000000000002', '32000000-0000-0000-0000-000000000002')
-on conflict do nothing;
+-- Official sources are linked to their curated courses via seed.sql after
+-- catalog_sources and catalog_courses are populated. The mapping is
+-- intentionally not inserted here to keep the migration independent of seed
+-- order (FKs would fail on a fresh DB before seed). See supabase/seed.sql.
 
 -- ── 4) Re-apply schema grants (self-healing for restored DBs) ────────────
 -- Mirrors 0017_standard_schema_grants: ensure anon/authenticated can read

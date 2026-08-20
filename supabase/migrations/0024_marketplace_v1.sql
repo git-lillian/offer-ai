@@ -7,21 +7,6 @@
 --
 -- See docs/architecture/marketplace.md, domain-map.md:20, vision.md:15.
 
--- ── 0) Helper: does the current user own this marketplace provider? ─────────
-create or replace function public.is_provider_owner(p_provider_id uuid)
-returns boolean
-language sql
-security definer
-set search_path = public
-stable
-as $$
-  select exists (
-    select 1 from public.provider_profiles pp
-    where pp.id = p_provider_id
-      and pp.user_id = auth.uid()
-  );
-$$;
-
 -- ── 1) Provider profiles ─────────────────────────────────────────────────────
 create table if not exists public.provider_profiles (
   id uuid primary key default gen_random_uuid(),
@@ -72,6 +57,21 @@ create policy provider_profiles_delete_own
   on public.provider_profiles for delete
   to authenticated
   using (user_id = auth.uid());
+
+-- ── Helper: does the current user own this marketplace provider? (after table exists)
+create or replace function public.is_provider_owner(p_provider_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.provider_profiles pp
+    where pp.id = p_provider_id
+      and pp.user_id = auth.uid()
+  );
+$$;
 
 -- ── 2) Service listings ──────────────────────────────────────────────────────
 create table if not exists public.service_listings (
@@ -213,7 +213,7 @@ create table if not exists public.service_orders (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (booking_id),
-  constraint service_orders_total_check check (total = amount + platform_fee),
+  constraint service_orders_total_sum_check check (total = amount + platform_fee),
   constraint service_orders_fee_not_exceed_total check (platform_fee <= total)
 );
 
