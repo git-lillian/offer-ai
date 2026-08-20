@@ -132,6 +132,17 @@ export class ApplicationOsTaskRepository {
     return (data ?? []).map((row) => this.toTask(row));
   }
 
+  async findById(id: string): Promise<ApplicationTask | null> {
+    const { data, error } = await this.db
+      .from("application_tasks")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    return this.toTask(data);
+  }
+
   async create(task: ApplicationTask): Promise<ApplicationTask> {
     const { data, error } = await this.db
       .from("application_tasks")

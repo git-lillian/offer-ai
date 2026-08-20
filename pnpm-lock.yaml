@@ -35,9 +35,15 @@ importers:
 
   apps/web:
     dependencies:
+      '@offer-ai/admissions-engine':
+        specifier: workspace:*
+        version: link:../../packages/admissions-engine
       '@offer-ai/ai':
         specifier: workspace:*
         version: link:../../packages/ai
+      '@offer-ai/billing':
+        specifier: workspace:*
+        version: link:../../packages/billing
       '@offer-ai/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -50,6 +56,9 @@ importers:
       '@offer-ai/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@offer-ai/notifications':
+        specifier: workspace:*
+        version: link:../../packages/notifications
       '@offer-ai/ui':
         specifier: workspace:*
         version: link:../../packages/ui
