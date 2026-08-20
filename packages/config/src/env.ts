@@ -7,10 +7,12 @@ import { z } from "zod";
 const serverEnvSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "SUPABASE_SERVICE_ROLE_KEY is required."),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required."),
-  AI_PROVIDER: z.enum(["deepseek", "fake"]).default("fake"),
+  AI_PROVIDER: z.enum(["deepseek", "fake", "opencode"]).default("fake"),
   AI_MODEL: z.string().min(1).default("deepseek-v4-flash"),
   DEEPSEEK_API_KEY: z.string().optional(),
   DEEPSEEK_BASE_URL: z.string().url().optional().default("https://api.deepseek.com"),
+  OPENCODE_API_KEY: z.string().optional(),
+  OPENCODE_BASE_URL: z.string().url().optional().default("https://api.deepseek.com"),
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),
